@@ -4,12 +4,15 @@ public class Chair : MonoBehaviour
 {
     [SerializeField] private Transform bottomPoint; // Точка у основания (Y=0)
     [SerializeField] private Transform topPoint; // Точка на стуле (Y=0.5)
-    public bool IsAvailable { get; private set; } = true;
+
+    public enum ChairState { Free, OnOccupation, IsOccupied }
+    private ChairState chairState = ChairState.Free;
 
     public Transform BottomPoint => bottomPoint;
     public Transform TopPoint => topPoint;
+    public ChairState CurrentState => chairState;
 
-    void Start()
+    private void Awake()
     {
         if (bottomPoint == null || topPoint == null)
         {
@@ -18,15 +21,8 @@ public class Chair : MonoBehaviour
         }
     }
 
-    public void OccupyChair()
+    public void SetState(ChairState newState)
     {
-        IsAvailable = false;
-        Debug.Log($"{gameObject.name} occupied.");
-    }
-
-    public void FreeChair()
-    {
-        IsAvailable = true;
-        Debug.Log($"{gameObject.name} freed.");
+        chairState = newState;
     }
 }

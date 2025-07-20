@@ -3,76 +3,132 @@ using UnityEngine.AI;
 
 public class CustomerMovement : MonoBehaviour
 {
-    [SerializeField] private Route route; // Ссылка на Route
-    [SerializeField] private CustomerMenuUI customerMenuUI; // Ссылка на UI
-    private NavMeshAgent agent; // NavMeshAgent
+    [SerializeField] private Transform registerPosition; // Точка регистратуры
+    [SerializeField] private Transform serviceDestination; // Точка услуги
+    [SerializeField] private Transform exitPoint; // Точка выхода
+    [SerializeField] private ChairManager chairManager; // Менеджер стульев
+    [SerializeField] private Transform visual; // Дочерний объект Visual
+    [SerializeField] private float waitTime = 30f; // Время ожидания на стуле
 
-    void Start()
+    private NavMeshAgent agent;
+    private Chair assignedChair;
+    private float waitTimer;
+    private bool isServiceChosen;
+
+    private enum CustomerState
+    {
+        WalkToRegister,
+        Waiting,
+        OnOccupyChair,
+        OnChair,
+        OnDestination,
+        OnExit
+    }
+    private CustomerState currentState;
+
+    private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
-        if (agent == null)
+        if (agent == null || registerPosition == null || serviceDestination == null || exitPoint == null || chairManager == null || visual == null)
         {
-            Debug.LogError($"{gameObject.name} requires NavMeshAgent.");
-            Destroy(gameObject);
-            return;
+            Debug.LogError($"{gameObject.name}: Missing required components or references.");
+            enabled = false;
         }
-
-        if (route == null)
-        {
-            Debug.LogError($"{gameObject.name} is missing Route component.");
-            Destroy(gameObject);
-            return;
-        }
-
-        if (customerMenuUI == null)
-        {
-            Debug.LogError($"{gameObject.name} is missing CustomerMenuUI component.");
-            Destroy(gameObject);
-            return;
-        }
-
-        // Принудительно Y=0
-        transform.position = new Vector3(transform.position.x, 0f, transform.position.z);
     }
 
-    void Update()
+    private void Start()
     {
-        // Принудительная коррекция Y
-        if (Mathf.Abs(transform.position.y) > 0.001f)
-        {
-            transform.position = new Vector3(transform.position.x, 0f, transform.position.z);
-        }
-
-        // Получаем данные от Route
-        var (targetPosition, shouldMove, shouldDestroy, currentState) = route.RouteHandler(transform.position);
-
-        if (shouldDestroy)
-        {
-            Debug.Log($"{gameObject.name} destroying.");
-            Destroy(gameObject);
-            return;
-        }
-
-        if (shouldMove)
-        {
-            agent.isStopped = false;
-            agent.SetDestination(targetPosition);
-        }
-        else
-        {
-            agent.isStopped = true;
-            transform.position = targetPosition;
-        }
-
-        Debug.Log($"{gameObject.name} state: {currentState}, moving to: {targetPosition}, shouldMove: {shouldMove}, Y-position: {transform.position.y}");
+        currentState = CustomerState.WalkToRegister;
+        MoveTo(registerPosition.position);
     }
 
-    void OnMouseDown()
+    private void Update()
     {
-        var (_, _, _, currentState) = route.RouteHandler(transform.position);
-        if (currentState == Route.State.Waiting || currentState == Route.State.OnWaitingSpot)
+        switch (currentState)
         {
-            customerMenuUI.Initialize(route, this); // Открываем UI
+            case CustomerState.WalkToRegister:
+                if (HasReachedDestination(registerPosition.position))
+                {
+                    currentState = CustomerState.OnOccupyChair;
+                }
+                break;
+
+            case CustomerState.Waiting:
+                // Ожидание выбора игрока (услуга или стул)
+                break;
+
+            case CustomerState.OnOccupyChair:
+                if (assignedChair == null)
+                {
+                    assignedChair = chairManager.GetFreeChair();
+                    if (assignedChair == null)
+                    {
+                        currentState = CustomerState.OnExit;
+                        MoveTo(exitPoint.position);
+                    }
+                    else
+                    {
+                        MoveTo(assignedChair.BottomPoint.position);
+                    }
+                }
+                else if (HasReachedDestination(assignedChair.BottomPoint.position))
+                {
+                    currentState = CustomerState.OnChair;
+                    visual.position = assignedChair.TopPoint.position; // Перемещение Visual на TopPoint
+                    assignedChair.SetState(Chair.ChairState.IsOccupied);
+                    waitTimer = waitTime;
+                }
+                break;
+
+            case CustomerState.OnChair:
+                waitTimer -= Time.deltaTime;
+                if (waitTimer <= 0)
+                {
+                    visual.position = assignedChair.BottomPoint.position; // Возврат Visual на BottomPoint
+                    currentState = CustomerState.OnExit;
+                    chairManager.ReturnChair(assignedChair);
+                    assignedChair = null;
+                    MoveTo(exitPoint.position);
+                }
+                break;
+
+            case CustomerState.OnDestination:
+                if (HasReachedDestination(serviceDestination.position))
+                {
+                    currentState = CustomerState.OnExit;
+                    MoveTo(exitPoint.position);
+                }
+                break;
+
+            case CustomerState.OnExit:
+                if (HasReachedDestination(exitPoint.position))
+                {
+                    Destroy(gameObject);
+                }
+                break;
         }
+    }
+
+    private void MoveTo(Vector3 position)
+    {
+        agent.destination = position;
+    }
+
+    private bool HasReachedDestination(Vector3 destination)
+    {
+        return !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance;
+    }
+
+    public void ChooseService()
+    {
+        isServiceChosen = true;
+        currentState = CustomerState.OnDestination;
+        MoveTo(serviceDestination.position);
+    }
+
+    public void ChooseWait()
+    {
+        isServiceChosen = false;
+        currentState = CustomerState.OnOccupyChair;
     }
 }

@@ -16,17 +16,22 @@ MonoBehaviour:
   employeeName: Anna
   race: Human
   breastSize: 66
-  bodyType: Slim
+  bodyTypes:
+  - Average
+  - Curvy
   selectionCardImage: {fileID: 0}
   listIcon: {fileID: 0}
   skills:
-  - skillName: Missioanary
+  - skillName: BJ
     level: 1
     progress: 0
-  - skillName: CowGirl
+  - skillName: Boob Job
     level: 1
     progress: 0
-  - skillName: Doggy
+  - skillName: Missionary
+    level: 1
+    progress: 0
+  - skillName: Cowgirl
     level: 1
     progress: 0
   - skillName: Reverse Cowgirl
@@ -35,13 +40,10 @@ MonoBehaviour:
   - skillName: Standing
     level: 1
     progress: 0
-  - skillName: BJ
+  - skillName: Doggy
     level: 1
     progress: 0
-  - skillName: Boob Job
-    level: 1
-    progress: 0
-  - skillName: Boob Job
+  - skillName: Amazon
     level: 1
     progress: 0
   disease: {fileID: 0}

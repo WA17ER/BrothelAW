@@ -16,7 +16,8 @@ MonoBehaviour:
   employeeName: Liora
   race: Human
   breastSize: 67
-  bodyType: Sport
+  bodyTypes:
+  - Voluptuous
   selectionCardImage: {fileID: 0}
   listIcon: {fileID: 0}
   skills:
@@ -36,9 +37,6 @@ MonoBehaviour:
     level: 1
     progress: 0
   - skillName: BJ
-    level: 1
-    progress: 0
-  - skillName: Boob Job
     level: 1
     progress: 0
   - skillName: Boob Job

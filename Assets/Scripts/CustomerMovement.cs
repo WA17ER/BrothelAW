@@ -1,45 +1,52 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
 
 public class CustomerMovement : MonoBehaviour
 {
-    [SerializeField] private Transform registerPosition; // Точка регистратуры
-    [SerializeField] private Transform serviceDestination; // Точка услуги
+    [SerializeField] private Transform registerPosition; // Позиция регистрации
+    [SerializeField] private Transform serviceDestination; // Позиция услуги
     [SerializeField] private Transform exitPoint; // Точка выхода
     [SerializeField] private ChairManager chairManager; // Менеджер стульев
-    [SerializeField] private Transform visual; // Дочерний объект Visual
-    [SerializeField] private float waitTime = 30f; // Время ожидания на стуле
+    [SerializeField] private ServiceController serviceController; // Контроллер услуги
+
+    public UnityEvent onDecisionMade; // Событие при принятии решения
 
     private NavMeshAgent agent;
-    private Chair assignedChair;
-    private float waitTimer;
-    private bool isServiceChosen;
+    private CustomerState currentState = CustomerState.WalkToRegister;
+    private Chair currentChair;
+    private Transform visual;
+    private bool isDecisionMade = false;
+    private Coroutine waitingCoroutine;
+    private Coroutine chairCoroutine;
 
     private enum CustomerState
     {
-        WalkToRegister,
-        Waiting,
-        OnOccupyChair,
-        OnChair,
-        OnDestination,
-        OnExit
+        WalkToRegister, // Идёт к регистрации
+        Waiting, // Ожидание
+        OnOccupyChair, // Занимает стул
+        OnChair, // На стуле
+        MoveToService, // Идёт к услуге
+        OnService, // На услуге
+        OnExit // На выход
     }
-    private CustomerState currentState;
 
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
-        if (agent == null || registerPosition == null || serviceDestination == null || exitPoint == null || chairManager == null || visual == null)
+        visual = transform.Find("Visual");
+        if (agent == null || registerPosition == null || serviceDestination == null || exitPoint == null || chairManager == null || visual == null || serviceController == null)
         {
-            Debug.LogError($"{gameObject.name}: Missing required components or references.");
+            Debug.LogError("CustomerMovement: Отсутствуют компоненты или ссылки.");
             enabled = false;
         }
     }
 
     private void Start()
     {
-        currentState = CustomerState.WalkToRegister;
-        MoveTo(registerPosition.position);
+        SetDestination(registerPosition.position);
+        LogState();
     }
 
     private void Update()
@@ -47,61 +54,37 @@ public class CustomerMovement : MonoBehaviour
         switch (currentState)
         {
             case CustomerState.WalkToRegister:
-                if (HasReachedDestination(registerPosition.position))
+                if (HasReachedDestination())
                 {
-                    currentState = CustomerState.OnOccupyChair;
+                    ChangeState(CustomerState.Waiting);
+                    waitingCoroutine = StartCoroutine(WaitForDecision(5f));
                 }
-                break;
-
-            case CustomerState.Waiting:
-                // Ожидание выбора игрока (услуга или стул)
                 break;
 
             case CustomerState.OnOccupyChair:
-                if (assignedChair == null)
+                if (HasReachedDestination())
                 {
-                    assignedChair = chairManager.GetFreeChair();
-                    if (assignedChair == null)
+                    ChangeState(CustomerState.OnChair);
+                    if (currentChair != null)
                     {
-                        currentState = CustomerState.OnExit;
-                        MoveTo(exitPoint.position);
+                        currentChair.SetState(Chair.ChairState.IsOccupied);
+                        SeatVisualOnChair();
                     }
-                    else
-                    {
-                        MoveTo(assignedChair.BottomPoint.position);
-                    }
-                }
-                else if (HasReachedDestination(assignedChair.BottomPoint.position))
-                {
-                    currentState = CustomerState.OnChair;
-                    visual.position = assignedChair.TopPoint.position; // Перемещение Visual на TopPoint
-                    assignedChair.SetState(Chair.ChairState.IsOccupied);
-                    waitTimer = waitTime;
+                    chairCoroutine = StartCoroutine(WaitOnChair(5f));
                 }
                 break;
 
-            case CustomerState.OnChair:
-                waitTimer -= Time.deltaTime;
-                if (waitTimer <= 0)
+            case CustomerState.MoveToService:
+                if (HasReachedDestination())
                 {
-                    visual.position = assignedChair.BottomPoint.position; // Возврат Visual на BottomPoint
-                    currentState = CustomerState.OnExit;
-                    chairManager.ReturnChair(assignedChair);
-                    assignedChair = null;
-                    MoveTo(exitPoint.position);
-                }
-                break;
-
-            case CustomerState.OnDestination:
-                if (HasReachedDestination(serviceDestination.position))
-                {
-                    currentState = CustomerState.OnExit;
-                    MoveTo(exitPoint.position);
+                    ChangeState(CustomerState.OnService);
+                    agent.enabled = false;
+                    serviceController.EnterService(this);
                 }
                 break;
 
             case CustomerState.OnExit:
-                if (HasReachedDestination(exitPoint.position))
+                if (HasReachedDestination())
                 {
                     Destroy(gameObject);
                 }
@@ -109,26 +92,150 @@ public class CustomerMovement : MonoBehaviour
         }
     }
 
-    private void MoveTo(Vector3 position)
+    private IEnumerator WaitForDecision(float time)
     {
-        agent.destination = position;
+        yield return new WaitForSeconds(time);
+        if (!isDecisionMade)
+        {
+            Debug.Log("Решение не принято, клиент уходит.");
+            SetDestination(exitPoint.position);
+            ChangeState(CustomerState.OnExit);
+        }
     }
 
-    private bool HasReachedDestination(Vector3 destination)
+    private IEnumerator WaitOnChair(float time)
     {
-        return !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance;
+        yield return new WaitForSeconds(time);
+        if (currentState == CustomerState.OnChair)
+        {
+            Debug.Log("Время ожидания на стуле истекло, клиент расстроен и уходит.");
+            if (currentChair != null)
+            {
+                ReturnVisualFromChair();
+                chairManager.ReturnChair(currentChair);
+                currentChair = null;
+            }
+            agent.enabled = true;
+            SetDestination(exitPoint.position);
+            ChangeState(CustomerState.OnExit);
+        }
     }
 
-    public void ChooseService()
+    private void SetDestination(Vector3 position)
     {
-        isServiceChosen = true;
-        currentState = CustomerState.OnDestination;
-        MoveTo(serviceDestination.position);
+        agent.SetDestination(position);
     }
 
-    public void ChooseWait()
+    private bool HasReachedDestination()
     {
-        isServiceChosen = false;
-        currentState = CustomerState.OnOccupyChair;
+        return !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f && !agent.hasPath;
     }
+
+    [ContextMenu("Отправить на стул")]
+    public void SendToChair()
+    {
+        if (currentState == CustomerState.Waiting)
+        {
+            Debug.Log("Отправка клиента на стул.");
+            isDecisionMade = true;
+            if (waitingCoroutine != null)
+            {
+                StopCoroutine(waitingCoroutine);
+            }
+            OccupyChair();
+            onDecisionMade?.Invoke();
+        }
+        else
+        {
+            Debug.LogError("Нельзя отправить на стул: Недопустимое состояние.");
+        }
+    }
+
+    [ContextMenu("Отправить на услугу")]
+    public void SendToService()
+    {
+        if (currentState == CustomerState.Waiting || currentState == CustomerState.OnChair)
+        {
+            Debug.Log("Отправка клиента на услугу.");
+            isDecisionMade = true;
+            if (currentState == CustomerState.Waiting && waitingCoroutine != null)
+            {
+                StopCoroutine(waitingCoroutine);
+            }
+            else if (currentState == CustomerState.OnChair)
+            {
+                if (chairCoroutine != null)
+                {
+                    StopCoroutine(chairCoroutine);
+                }
+                if (currentChair != null)
+                {
+                    ReturnVisualFromChair();
+                    chairManager.ReturnChair(currentChair);
+                    currentChair = null;
+                }
+                agent.enabled = true;
+            }
+            SetDestination(serviceDestination.position);
+            ChangeState(CustomerState.MoveToService);
+            onDecisionMade?.Invoke();
+        }
+        else
+        {
+            Debug.LogError("Нельзя отправить на услугу: Недопустимое состояние.");
+        }
+    }
+
+    private void OccupyChair()
+    {
+        currentChair = chairManager.GetFreeChair();
+        if (currentChair != null)
+        {
+            SetDestination(currentChair.BottomPoint.position);
+            ChangeState(CustomerState.OnOccupyChair);
+        }
+        else
+        {
+            Debug.Log("Нет свободного стула, клиент уходит.");
+            SetDestination(exitPoint.position);
+            ChangeState(CustomerState.OnExit);
+        }
+    }
+
+    private void SeatVisualOnChair()
+    {
+        agent.enabled = false;
+        visual.SetParent(currentChair.TopPoint);
+        visual.localPosition = Vector3.zero;
+        visual.localRotation = Quaternion.identity;
+        Debug.Log("Визуал посажен на стул");
+    }
+
+    private void ReturnVisualFromChair()
+    {
+        visual.SetParent(transform);
+        visual.localPosition = Vector3.zero;
+        visual.localRotation = Quaternion.identity;
+        Debug.Log("Визуал возвращён");
+    }
+
+    public void ExitService()
+    {
+        agent.enabled = true;
+        SetDestination(exitPoint.position);
+        ChangeState(CustomerState.OnExit);
+    }
+
+    private void ChangeState(CustomerState newState)
+    {
+        currentState = newState;
+        LogState();
+    }
+
+    private void LogState()
+    {
+        Debug.Log($"Клиент {name} состояние: {currentState}");
+    }
+
+    public Transform Visual => visual;
 }

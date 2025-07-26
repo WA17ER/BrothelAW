@@ -11,7 +11,6 @@ public class EmployeeSkill
 public class Employee : MonoBehaviour
 {
     [SerializeField] private EmployeeDataSO data; // —сылка на ScriptableObject
-
     private Dictionary<string, EmployeeSkill> skills = new Dictionary<string, EmployeeSkill>();
     [SerializeField] private float staminaMax = 100f;
     private float staminaCurrent;

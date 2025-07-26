@@ -21,7 +21,7 @@ public class CustomerMovement : MonoBehaviour
     private Coroutine waitingCoroutine;
     private Coroutine chairCoroutine;
 
-    private enum CustomerState
+    public enum CustomerState
     {
         WalkToRegister, // Идёт к регистрации
         Waiting, // Ожидание
@@ -32,11 +32,16 @@ public class CustomerMovement : MonoBehaviour
         OnExit // На выход
     }
 
+    public CustomerState CurrentState => currentState;
+
+    private ClientRequest clientRequest;
+
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         visual = transform.Find("Visual");
-        if (agent == null || registerPosition == null || serviceDestination == null || exitPoint == null || chairManager == null || visual == null || serviceController == null)
+        clientRequest = GetComponent<ClientRequest>();
+        if (agent == null || registerPosition == null || serviceDestination == null || exitPoint == null || chairManager == null || visual == null || serviceController == null || clientRequest == null)
         {
             Debug.LogError("CustomerMovement: Отсутствуют компоненты или ссылки.");
             enabled = false;
@@ -183,6 +188,38 @@ public class CustomerMovement : MonoBehaviour
         else
         {
             Debug.LogError("Нельзя отправить на услугу: Недопустимое состояние.");
+        }
+    }
+
+    public void ForceExit()
+    {
+        if (currentState == CustomerState.Waiting || currentState == CustomerState.OnChair)
+        {
+            Debug.Log("Принудительный выход клиента.");
+            if (currentState == CustomerState.Waiting && waitingCoroutine != null)
+            {
+                StopCoroutine(waitingCoroutine);
+            }
+            else if (currentState == CustomerState.OnChair)
+            {
+                if (chairCoroutine != null)
+                {
+                    StopCoroutine(chairCoroutine);
+                }
+                if (currentChair != null)
+                {
+                    ReturnVisualFromChair();
+                    chairManager.ReturnChair(currentChair);
+                    currentChair = null;
+                }
+                agent.enabled = true;
+            }
+            SetDestination(exitPoint.position);
+            ChangeState(CustomerState.OnExit);
+        }
+        else
+        {
+            Debug.LogError("Нельзя принудительно выйти: Недопустимое состояние.");
         }
     }
 

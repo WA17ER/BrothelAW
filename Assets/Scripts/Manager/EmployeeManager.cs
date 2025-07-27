@@ -1,86 +1,115 @@
-using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
-using System;
+using UnityEngine;
 
 public class EmployeeManager : MonoBehaviour
 {
-    [SerializeField] private List<Employee> employees = new List<Employee>(); // Список всех сотрудниц в сцене
-    private static EmployeeManager instance;
+    public static EmployeeManager Instance { get; private set; }
 
-    public static EmployeeManager Instance => instance;
-    public event Action OnEmployeeAdded; // Событие при добавлении новой сотрудницы
+    [SerializeField] private List<string> allServices = new List<string> { "Missionary", "Cow Girl", "Amazon", "BJ", "BoobJob", "Standing", "Hand Job" };
+
+    private HashSet<string> availableRaces = new HashSet<string>();
+    private Dictionary<string, HashSet<string>> raceBodyTypes = new Dictionary<string, HashSet<string>>();
+    private Dictionary<string, HashSet<char>> raceBreastSizes = new Dictionary<string, HashSet<char>>();
+    private List<Employee> employees = new List<Employee>();
 
     private void Awake()
     {
-        if (instance == null)
+        if (Instance == null)
         {
-            instance = this;
+            Instance = this;
             DontDestroyOnLoad(gameObject);
         }
         else
         {
             Destroy(gameObject);
-        }
-
-        if (employees == null || employees.Count == 0)
-        {
-            Debug.LogError("EmployeeManager: No employees assigned.");
-            enabled = false;
-        }
-    }
-
-    public void RegisterEmployee(Employee employee)
-    {
-        if (!employees.Contains(employee))
-        {
-            employees.Add(employee);
-            OnEmployeeAdded?.Invoke(); // Вызов события при добавлении
-        }
-    }
-
-    public List<BaseEmployeeDataSO> GetAvailableEmployees()
-    {
-        return employees
-            .Where(emp => emp.Data.CurrentState == BaseEmployeeDataSO.EmployeeState.Free)
-            .Select(emp => emp.Data)
-            .ToList();
-    }
-
-    public void SelectEmployee(BaseEmployeeDataSO employee, CustomerPreferences customer)
-    {
-        if (employee.CurrentState != BaseEmployeeDataSO.EmployeeState.Free)
             return;
+        }
 
-        employee.SetState(BaseEmployeeDataSO.EmployeeState.Working);
-        customer.SelectEmployee(employee);
+        CollectEmployeeData();
     }
 
-    public void CompleteService(BaseEmployeeDataSO employee, string service, int staminaCost = 10, float skillProgress = 10f)
+    private void CollectEmployeeData()
     {
-        if (employee.CurrentState == BaseEmployeeDataSO.EmployeeState.Working)
-        {
-            employee.UpdateSkillProgress(service, skillProgress);
-            employee.DecreaseStamina(staminaCost + (employee.Disease != null ? employee.Disease.StaminaPenalty : 0));
-            employee.SetState(BaseEmployeeDataSO.EmployeeState.Free);
+        Employee[] allEmployees = Object.FindObjectsByType<Employee>(FindObjectsSortMode.None);
+        employees.AddRange(allEmployees);
 
-            // Проверка на заражение после услуги
-            if (UnityEngine.Random.value < 0.05f) // 5% шанс
+        foreach (var employee in allEmployees)
+        {
+            string race = employee.Race;
+            availableRaces.Add(race);
+
+            if (!raceBodyTypes.ContainsKey(race))
             {
-                TryInfectEmployee(employee);
+                raceBodyTypes[race] = new HashSet<string>();
             }
+            foreach (var bodyType in employee.BodyTypes)
+            {
+                raceBodyTypes[race].Add(bodyType);
+            }
+
+            if (!raceBreastSizes.ContainsKey(race))
+            {
+                raceBreastSizes[race] = new HashSet<char>();
+            }
+            raceBreastSizes[race].Add(employee.BreastSize);
         }
+
+        LogCollectedData();
     }
 
-    private void TryInfectEmployee(BaseEmployeeDataSO employee)
+    private void LogCollectedData()
     {
-        BaseSickSO[] diseases = Resources.LoadAll<BaseSickSO>("Diseases");
-        if (diseases.Length == 0) return;
+        Debug.Log("All Services: " + string.Join(", ", allServices));
 
-        BaseSickSO selectedDisease = diseases[UnityEngine.Random.Range(0, diseases.Length)];
-        if (!selectedDisease.ImmuneRaces.Contains(employee.Race))
+        Debug.Log("Available Races: " + string.Join(", ", availableRaces));
+
+        foreach (var kvp in raceBodyTypes)
         {
-            employee.SetDisease(selectedDisease);
+            Debug.Log($"Race {kvp.Key} Body Types: " + string.Join(", ", kvp.Value));
         }
+
+        foreach (var kvp in raceBreastSizes)
+        {
+            Debug.Log($"Race {kvp.Key} Breast Sizes: " + string.Join(", ", kvp.Value));
+        }
+
+        Debug.Log("Total Employees: " + employees.Count);
+    }
+
+    // Методы для генерации
+    public string GetRandomService()
+    {
+        return allServices[Random.Range(0, allServices.Count)];
+    }
+
+    public string GetRandomRace()
+    {
+        List<string> races = new List<string>(availableRaces);
+        return races[Random.Range(0, races.Count)];
+    }
+
+    public string GetRandomBodyType(string race)
+    {
+        if (raceBodyTypes.TryGetValue(race, out var types))
+        {
+            List<string> bodyTypes = new List<string>(types);
+            return bodyTypes[Random.Range(0, bodyTypes.Count)];
+        }
+        return null;
+    }
+
+    public char GetRandomBreastSize(string race)
+    {
+        if (raceBreastSizes.TryGetValue(race, out var sizes))
+        {
+            List<char> breastSizes = new List<char>(sizes);
+            return breastSizes[Random.Range(0, breastSizes.Count)];
+        }
+        return ' ';
+    }
+
+    public Employee GetRandomEmployee()
+    {
+        return employees[Random.Range(0, employees.Count)];
     }
 }

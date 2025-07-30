@@ -5,13 +5,11 @@ using UnityEngine.Events;
 
 public class CustomerMovement : MonoBehaviour
 {
-    [SerializeField] private Transform registerPosition; // Позиция регистрации
-    [SerializeField] private Transform serviceDestination; // Позиция услуги
-    [SerializeField] private Transform exitPoint; // Точка выхода
     [SerializeField] private ChairManager chairManager; // Менеджер стульев
     [SerializeField] private ServiceController serviceController; // Контроллер услуги
 
     public UnityEvent onDecisionMade; // Событие при принятии решения
+    public UnityEvent onEnterWaiting; // Событие при входе в Waiting
 
     private NavMeshAgent agent;
     private CustomerState currentState = CustomerState.WalkToRegister;
@@ -20,6 +18,7 @@ public class CustomerMovement : MonoBehaviour
     private bool isDecisionMade = false;
     private Coroutine waitingCoroutine;
     private Coroutine chairCoroutine;
+    private NavigationManager navigationManager;
 
     public enum CustomerState
     {
@@ -41,16 +40,24 @@ public class CustomerMovement : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         visual = transform.Find("Visual");
         clientRequest = GetComponent<ClientRequest>();
-        if (agent == null || registerPosition == null || serviceDestination == null || exitPoint == null || chairManager == null || visual == null || serviceController == null || clientRequest == null)
+        navigationManager = FindObjectOfType<NavigationManager>();
+
+        if (agent == null || visual == null || clientRequest == null || navigationManager == null || chairManager == null || serviceController == null)
         {
-            Debug.LogError("CustomerMovement: Отсутствуют компоненты или ссылки.");
-            enabled = false;
+            Debug.LogWarning($"CustomerMovement: Отсутствуют компоненты или ссылки на {gameObject.name}.");
+            return;
+        }
+
+        if (navigationManager.RegisterPosition == null || navigationManager.ServiceDestination == null || navigationManager.ExitPoint == null)
+        {
+            Debug.LogWarning($"CustomerMovement: Точки навигации не назначены в NavigationManager для {gameObject.name}.");
+            return;
         }
     }
 
     private void Start()
     {
-        SetDestination(registerPosition.position);
+        SetDestination(navigationManager.RegisterPosition.position);
         LogState();
     }
 
@@ -83,8 +90,16 @@ public class CustomerMovement : MonoBehaviour
                 if (HasReachedDestination())
                 {
                     ChangeState(CustomerState.OnService);
-                    agent.enabled = false;
-                    serviceController.EnterService(this);
+                    if (GameManager.Instance != null)
+                    {
+                        agent.enabled = false;
+                        GameManager.Instance.EnterService(this);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"GameManager не найден для клиента {name}.");
+                        ForceExit();
+                    }
                 }
                 break;
 
@@ -103,7 +118,7 @@ public class CustomerMovement : MonoBehaviour
         if (!isDecisionMade)
         {
             Debug.Log("Решение не принято, клиент уходит.");
-            SetDestination(exitPoint.position);
+            SetDestination(navigationManager.ExitPoint.position);
             ChangeState(CustomerState.OnExit);
         }
     }
@@ -121,7 +136,7 @@ public class CustomerMovement : MonoBehaviour
                 currentChair = null;
             }
             agent.enabled = true;
-            SetDestination(exitPoint.position);
+            SetDestination(navigationManager.ExitPoint.position);
             ChangeState(CustomerState.OnExit);
         }
     }
@@ -181,7 +196,7 @@ public class CustomerMovement : MonoBehaviour
                 }
                 agent.enabled = true;
             }
-            SetDestination(serviceDestination.position);
+            SetDestination(navigationManager.ServiceDestination.position);
             ChangeState(CustomerState.MoveToService);
             onDecisionMade?.Invoke();
         }
@@ -214,7 +229,7 @@ public class CustomerMovement : MonoBehaviour
                 }
                 agent.enabled = true;
             }
-            SetDestination(exitPoint.position);
+            SetDestination(navigationManager.ExitPoint.position);
             ChangeState(CustomerState.OnExit);
         }
         else
@@ -234,7 +249,7 @@ public class CustomerMovement : MonoBehaviour
         else
         {
             Debug.Log("Нет свободного стула, клиент уходит.");
-            SetDestination(exitPoint.position);
+            SetDestination(navigationManager.ExitPoint.position);
             ChangeState(CustomerState.OnExit);
         }
     }
@@ -259,13 +274,17 @@ public class CustomerMovement : MonoBehaviour
     public void ExitService()
     {
         agent.enabled = true;
-        SetDestination(exitPoint.position);
+        SetDestination(navigationManager.ExitPoint.position);
         ChangeState(CustomerState.OnExit);
     }
 
     private void ChangeState(CustomerState newState)
     {
         currentState = newState;
+        if (newState == CustomerState.Waiting)
+        {
+            onEnterWaiting?.Invoke();
+        }
         LogState();
     }
 

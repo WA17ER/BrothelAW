@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class ClientRequest : MonoBehaviour
 {
+    [SerializeField] public int clientLevel = 1; // Для префабов, публичное для записи
     [SerializeField] private List<Employee> availableEmployees; // Для теста
 
     private string requestedService;
@@ -11,6 +12,9 @@ public class ClientRequest : MonoBehaviour
 
     private CustomerMovement customerMovement;
 
+    public int ClientLevel => clientLevel;
+    public string RequestedService => requestedService;
+
     private void Awake()
     {
         customerMovement = GetComponent<CustomerMovement>();
@@ -18,21 +22,42 @@ public class ClientRequest : MonoBehaviour
         {
             Debug.LogError("ClientRequest: CustomerMovement не найден.");
             enabled = false;
+            return;
         }
-    }
-
-    private void Start()
-    {
-        GenerateRequest();
+        customerMovement.onEnterWaiting.AddListener(GenerateRequest);
     }
 
     private void GenerateRequest()
     {
-        // Пример генерации, позже расширить по уровню
-        requestedService = "Missionary"; // Random из пула
-        // preferences.Add("race", "Elf"); etc.
-        // specificEmployee = null or random
-        Debug.Log($"Запрос клиента: Услуга - {requestedService}");
+        if (EmployeeManager.Instance == null)
+        {
+            Debug.LogError("EmployeeManager не найден.");
+            return;
+        }
+
+        requestedService = EmployeeManager.Instance.GetRandomService();
+
+        preferences.Clear();
+        specificEmployee = null;
+
+        if (clientLevel == 2)
+        {
+            string randomBodyType = EmployeeManager.Instance.GetRandomBodyType();
+            preferences.Add("bodyType", randomBodyType);
+            char randomBreastSize = EmployeeManager.Instance.GetRandomBreastSize(bodyType: randomBodyType);
+            preferences.Add("breastSize", randomBreastSize.ToString());
+        }
+        else if (clientLevel == 3)
+        {
+            string randomRace = EmployeeManager.Instance.GetRandomRace();
+            preferences.Add("race", randomRace);
+        }
+        else if (clientLevel == 4)
+        {
+            specificEmployee = EmployeeManager.Instance.GetRandomEmployee();
+        }
+
+        Debug.Log($"Запрос клиента сгенерирован в Waiting (level {clientLevel}): Услуга - {requestedService}, Preferences - {string.Join(", ", preferences)}, Specific: {(specificEmployee != null ? specificEmployee.name : "None")}");
     }
 
     public bool IsMatch(Employee employee)
@@ -54,8 +79,6 @@ public class ClientRequest : MonoBehaviour
         if (availableEmployees.Count > 0) SelectEmployee(availableEmployees[0]);
     }
 
-    // Добавить больше для теста
-
     public void SelectEmployee(Employee employee)
     {
         var state = customerMovement.CurrentState;
@@ -65,7 +88,7 @@ public class ClientRequest : MonoBehaviour
             {
                 Debug.Log("Запрос совпадает, отправка на услугу.");
                 customerMovement.SendToService();
-                // +экономика позже
+                // Вызов ServeClient из GameManager будет позже
             }
             else
             {

@@ -139,6 +139,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 154133316}
+  - component: {fileID: 154133317}
   m_Layer: 0
   m_Name: SpawnHandler
   m_TagString: Untagged
@@ -161,6 +162,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &154133317
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 154133315}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 922dc5582fa590c44899068db14cb311, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameManager: {fileID: 1807229840}
+  spawnPoint: {fileID: 746849333}
 --- !u!114 &259905625 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5921400865421737999, guid: 2ba3d6a7ccb0d55459bf8dd4cd95538f, type: 3}
@@ -223,14 +238,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13902b3741270174ca1b4c2e302f9d52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  allServices:
-  - Missionary
-  - Cow Girl
-  - Amazon
-  - BJ
-  - BoobJob
-  - Standing
-  - Hand Job
+  employeeData: []
 --- !u!4 &337243330
 Transform:
   m_ObjectHideFlags: 0
@@ -1236,6 +1244,29 @@ MonoBehaviour:
   - {fileID: 7189932594756907998, guid: 30bcfd11e647de3419aae72f106caf7b, type: 3}
   popularityPenalty: -10
   healingCost: 50
+  availableEmployeeData:
+  - {fileID: 11400000, guid: 5c4ee3bbb8e23f242bfbad753fba934d, type: 2}
+  - {fileID: 11400000, guid: 54e1cbd381a9c4240a244714061d989d, type: 2}
+  - {fileID: 11400000, guid: 7dd6afeacaadd9b489a3a0b2003fb6a2, type: 2}
+  - {fileID: 11400000, guid: 218eb68e31bf0cb428372e5b2982c3e1, type: 2}
+  - {fileID: 11400000, guid: 1993936c11c53614ea12e047badf42a6, type: 2}
+  - {fileID: 11400000, guid: eb2429a9c04981149bed9e8a6e2c5f57, type: 2}
+  - {fileID: 11400000, guid: 314f88b739893e94193d14b2e4134538, type: 2}
+  - {fileID: 11400000, guid: 0b0e2ff40ede8fa4fae9b73a6390c514, type: 2}
+  - {fileID: 11400000, guid: 56d0bc005925ca140ae9dcb4ef32693f, type: 2}
+  - {fileID: 11400000, guid: 0d863e1d22e8c8d429874472fe61c286, type: 2}
+  - {fileID: 11400000, guid: e1b4ad18df9c8204c8cf4d53b085f067, type: 2}
+  - {fileID: 11400000, guid: 89d37775a550b21469d2f0c4b434c6f3, type: 2}
+  - {fileID: 11400000, guid: 4b990efd5e11217408b99b18290076d2, type: 2}
+  - {fileID: 11400000, guid: 2fb716f005330d44884f888b5620dc0a, type: 2}
+  - {fileID: 11400000, guid: e9044801a7308c545b1508cd235130f4, type: 2}
+  - {fileID: 11400000, guid: 1293121382ed39f4eb9b4e205fa4bc5a, type: 2}
+  - {fileID: 11400000, guid: edc4f31f584cd0b4d887896b288c739d, type: 2}
+  - {fileID: 11400000, guid: 5a2a341b868edce4599de76fffe9c5f7, type: 2}
+  - {fileID: 11400000, guid: 53019e6436082cf4b9ddbf6692929cc5, type: 2}
+  - {fileID: 11400000, guid: f813b2c007b1e664a9f57254699dbb97, type: 2}
+  testEmployeeData: {fileID: 11400000, guid: eb2429a9c04981149bed9e8a6e2c5f57, type: 2}
+  testClientType: 1
 --- !u!4 &1807229841
 Transform:
   m_ObjectHideFlags: 0

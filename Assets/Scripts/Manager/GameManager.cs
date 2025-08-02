@@ -8,7 +8,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     [SerializeField] private int baseVisitors = 10; // Клиенты типа 1
-    [SerializeField] private Transform spawnPoint; // Клиенты типа 1
+    [SerializeField] private Transform spawnPoint; // Точка спавна
     [SerializeField] private int minSpawnDelay = 5; // Мин. задержка спавна (сек)
     [SerializeField] private float maxDayDuration = 300f; // Длительность дня (сек)
     [SerializeField] private float initialGold = 1000f; // Начальное золото
@@ -20,16 +20,20 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private Dictionary<string, float> goldPerService = new Dictionary<string, float> // Базовая награда за услугу
     {
-        { "Missionary", 50f },
-        { "Cow Girl", 60f },
-        { "Amazon", 70f },
-        { "BJ", 80f },
-        { "BoobJob", 90f },
-        { "Standing", 70f },
-        { "Hand Job", 50f }
+        { "Дрочка", 50f },
+        { "Миньет", 60f },
+        { "Дрочка Сиськами", 70f },
+        { "Миссионерская", 80f },
+        { "Наездница", 90f },
+        { "Амазонка", 70f },
+        { "Раком", 50f },
+        { "Стоя", 80f }
     };
     [SerializeField] private float popularityPenalty = -10f; // Штраф за провал
     [SerializeField] private float healingCost = 50f; // Стоимость лечения
+    [SerializeField] private List<EmployeeDataSO> availableEmployeeData; // Пул EmployeeDataSO
+    [SerializeField] private EmployeeDataSO testEmployeeData; // Выбор сотрудницы для теста
+    [SerializeField] private ClientType testClientType = ClientType.Type1; // Выбор типа клиента для теста
 
     private List<ClientRequest> clientPool = new List<ClientRequest>();
     private Dictionary<int, int> extraVisitors = new Dictionary<int, int>();
@@ -39,8 +43,15 @@ public class GameManager : MonoBehaviour
     private int dayCount = 1;
     private int clientsSpawnedToday = 0;
     private int difficultyLevel = 1;
-
     private Dictionary<int, List<GameObject>> clientVisualModels;
+
+    public enum ClientType
+    {
+        Type1 = 1,
+        Type2 = 2,
+        Type3 = 3,
+        Type4 = 4
+    }
 
     public int BaseVisitors => baseVisitors;
     public int MinSpawnDelay => minSpawnDelay;
@@ -86,33 +97,43 @@ public class GameManager : MonoBehaviour
         extraVisitors.Clear();
         if (currentPopularity >= 500f)
         {
-            extraVisitors[2] = 4; // Тип 2
+            extraVisitors[2] = 4;
         }
         if (currentPopularity >= 1000f)
         {
             extraVisitors[2] = 4;
-            extraVisitors[3] = 2; // Тип 3
+            extraVisitors[3] = 2;
         }
         if (currentPopularity >= 1500f)
         {
             extraVisitors[2] = 4;
             extraVisitors[3] = 2;
-            extraVisitors[4] = 1; // Тип 4
+            extraVisitors[4] = 1;
         }
     }
 
     public void EnterService(CustomerMovement customer)
     {
+        ClientRequest client = customer.GetComponent<ClientRequest>();
         Debug.Log($"Клиент {customer.name} начал услугу.");
         customer.Visual.gameObject.SetActive(false);
-        StartCoroutine(ServiceTimer(5f, customer));
+        StartCoroutine(ServiceTimer(5f, customer, client));
     }
 
-    private IEnumerator ServiceTimer(float time, CustomerMovement customer)
+    private IEnumerator ServiceTimer(float time, CustomerMovement customer, ClientRequest client)
     {
         yield return new WaitForSeconds(time);
         customer.Visual.gameObject.SetActive(true);
         Debug.Log($"Клиент {customer.name} закончил услугу.");
+        if (client.SelectedEmployee != null)
+        {
+            client.SelectedEmployee.UpdateStamina(1f);
+            client.SelectedEmployee.CheckSick(client.RequestedService);
+        }
+        else
+        {
+            Debug.LogWarning($"Сотрудница не выбрана для клиента {customer.name}.");
+        }
         customer.ExitService();
     }
 
@@ -125,10 +146,8 @@ public class GameManager : MonoBehaviour
             int skillLevel = employee.Skills[service].level;
             float reward = clientLevel * skillLevel * goldPerService[service];
             currentGold += reward;
-            currentPopularity += 5f; // Базовый прирост популярности
+            currentPopularity += 5f;
             employee.SetState(Employee.EmployeeState.Servicing);
-            employee.UpdateStamina(goldPerService[service] * 0.1f); // Пример траты стамины
-            employee.CheckSick(service);
 
             Debug.Log($"Клиент обслужен: +{reward} золота, +5 популярности.");
         }
@@ -182,52 +201,67 @@ public class GameManager : MonoBehaviour
     [ContextMenu("Add Test Employee")]
     public void AddTestEmployee()
     {
-        EmployeeDataSO data = Resources.Load<EmployeeDataSO>("SO/Employee/Lilith");
-        if (data != null)
+        if (testEmployeeData == null)
         {
-            GameObject employeeGO = new GameObject(data.name);
+            Debug.LogError("TestEmployeeData не выбрана в GameManager.");
+            return;
+        }
+        if (availableEmployeeData.Contains(testEmployeeData) && !activeEmployees.Exists(e => e.Data == testEmployeeData))
+        {
+            GameObject employeeGO = new GameObject(testEmployeeData.name);
             Employee employee = employeeGO.AddComponent<Employee>();
-            employee.SetData(data);
+            employee.SetData(testEmployeeData);
             activeEmployees.Add(employee);
-            Debug.Log($"Тестовая сотрудница {data.name} добавлена.");
+            SyncEmployeeLists();
+            if (EmployeeManager.Instance != null)
+            {
+                EmployeeManager.Instance.AddEmployeeData(testEmployeeData);
+            }
+            Debug.Log($"Тестовая сотрудница {testEmployeeData.name} добавлена.");
         }
         else
         {
-            Debug.LogError("Не удалось загрузить тестовую EmployeeDataSO для Lilith.");
+            Debug.LogError($"Сотрудница {testEmployeeData.name} уже добавлена или отсутствует в availableEmployeeData.");
         }
     }
 
-    [ContextMenu("Add Test Employee Amelia")]
-    public void AddTestEmployeeAmelia()
+    private void SyncEmployeeLists()
     {
-        EmployeeDataSO data = Resources.Load<EmployeeDataSO>("SO/Employee/Amelia");
-        if (data != null)
+        foreach (var client in clientPool)
         {
-            GameObject employeeGO = new GameObject(data.name);
-            Employee employee = employeeGO.AddComponent<Employee>();
-            employee.SetData(data);
-            activeEmployees.Add(employee);
-            Debug.Log($"Тестовая сотрудница {data.name} добавлена.");
+            client.availableEmployees.Clear();
+            client.availableEmployees.AddRange(activeEmployees);
         }
-        else
-        {
-            Debug.LogError("Не удалось загрузить тестовую EmployeeDataSO для Amelia.");
-        }
+        Debug.Log($"Синхронизировано: {clientPool.Count} клиентов, {activeEmployees.Count} сотрудниц.");
     }
 
     [ContextMenu("Add Test Client")]
     public void AddTestClient()
     {
-        if (clientVisualModels[1].Count == 0)
+        int clientType = (int)testClientType;
+        if (!clientVisualModels.ContainsKey(clientType) || clientVisualModels[clientType].Count == 0)
         {
-            Debug.LogError("Нет префабов клиента типа 1 для теста.");
+            Debug.LogError($"Нет префабов клиента типа {clientType} для теста.");
             return;
         }
-        GameObject clientGO = Instantiate(clientVisualModels[1][0], spawnPoint.position, Quaternion.identity);
+        if (spawnPoint == null)
+        {
+            Debug.LogError("SpawnPoint не назначен в GameManager.");
+            return;
+        }
+        GameObject clientGO = Instantiate(clientVisualModels[clientType][Random.Range(0, clientVisualModels[clientType].Count)], spawnPoint.position, Quaternion.identity);
         ClientRequest client = clientGO.GetComponent<ClientRequest>();
-        client.clientLevel = 1; // Тип 1 для теста
+        if (client == null)
+        {
+            Debug.LogError($"ClientRequest отсутствует на клиенте типа {clientType}.");
+            Destroy(clientGO);
+            return;
+        }
+        client.clientLevel = clientType;
         clientPool.Add(client);
-        Debug.Log($"Тестовый клиент типа 1 добавлен на позиции {spawnPoint.position}.");
+        SyncEmployeeLists();
+        Debug.Log($"Тестовый клиент типа {clientType} добавлен на позиции {spawnPoint.position}.");
+        Debug.Log($"Запрос клиента после спавна: Услуга - {client.RequestedService}, Preferences - {string.Join(", ", client.Preferences)}, Specific: {(client.SpecificEmployee != null ? client.SpecificEmployee.name : "None")}");
     }
 
     [ContextMenu("Test Serve Client")]
@@ -239,7 +273,11 @@ public class GameManager : MonoBehaviour
             return;
         }
         ClientRequest client = clientPool[0];
-        Employee employee = activeEmployees[0]; // Например, Lilith
+        Employee employee = client.SelectedEmployee != null ? client.SelectedEmployee : activeEmployees[0];
+        if (client.SelectedEmployee == null)
+        {
+            Debug.LogWarning($"Сотрудница не выбрана для клиента {client.name}, используется {employee.name}.");
+        }
         ServeClient(client, employee, client.IsMatch(employee));
     }
 
@@ -300,12 +338,19 @@ public class GameManager : MonoBehaviour
                         employee.Skills[skillName].progress = PlayerPrefs.GetInt($"EmployeeSkillProgress_{name}_{skillName}", 0);
                     }
                     employee.StaminaCurrent = PlayerPrefs.GetFloat($"EmployeeStamina_{name}", employee.StaminaMax);
+                    if (EmployeeManager.Instance != null)
+                    {
+                        EmployeeManager.Instance.AddEmployeeData(data);
+                    }
                 }
             }
         }
 
+        SyncEmployeeLists();
         Debug.Log("Прогресс загружен.");
+        LogGameState();
     }
+
     [ContextMenu("Heal Test Employee")]
     public void HealTestEmployee()
     {
@@ -314,6 +359,6 @@ public class GameManager : MonoBehaviour
             Debug.LogError("Нет активных сотрудниц для теста лечения.");
             return;
         }
-        HealEmployee(activeEmployees[0]); // Например, Lilith
+        HealEmployee(activeEmployees[0]);
     }
 }

@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1878306922781850070, guid: 6af34332fedddd841b7eca9f6fc6d926, type: 3}
       propertyPath: m_Name
-      value: Hunky Variant
+      value: Hunky
       objectReference: {fileID: 0}
     - target: {fileID: 2461535983186780050, guid: 6af34332fedddd841b7eca9f6fc6d926, type: 3}
       propertyPath: m_LocalPosition.x
@@ -52,7 +52,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4409415503980463776, guid: 6af34332fedddd841b7eca9f6fc6d926, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

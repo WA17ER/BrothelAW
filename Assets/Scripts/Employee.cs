@@ -30,7 +30,7 @@ public class Employee : MonoBehaviour
         if (data == null)
         {
             Debug.LogWarning($"Employee: Data не назначена для {name}. Ожидается установка через SetData.");
-            return; // Не отключаем компонент
+            return;
         }
 
         InitializeEmployee();
@@ -65,7 +65,9 @@ public class Employee : MonoBehaviour
     {
         if (employeeState == EmployeeState.Servicing)
         {
+            float previousStamina = staminaCurrent;
             staminaCurrent = Mathf.Max(0, staminaCurrent - cost);
+            Debug.Log($"Стамина сотрудницы {name} уменьшена на {cost} с {previousStamina} до {staminaCurrent}.");
             if (staminaCurrent <= 0)
             {
                 SetState(EmployeeState.Tired);
@@ -78,8 +80,14 @@ public class Employee : MonoBehaviour
     {
         if (employeeState == EmployeeState.Servicing)
         {
+            if (!skills.ContainsKey(service))
+            {
+                Debug.LogError($"Услуга {service} не найдена в навыках сотрудницы {name}.");
+                return;
+            }
             int skillLevel = skills[service].level;
             float sickChance = 0.05f - 0.01f * skillLevel + data.SickChanceModifier;
+            Debug.Log($"Шанс болезни для {name} при услуге {service}: {sickChance * 100:F2}%");
             if (Random.value <= sickChance)
             {
                 SetState(EmployeeState.Sick);

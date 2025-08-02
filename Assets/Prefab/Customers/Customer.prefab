@@ -277,7 +277,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chairManager: {fileID: 4134315996324270600, guid: 0de2cf97a0a234b4395aefd2f96b11e6, type: 3}
-  serviceController: {fileID: 5528039830497361363, guid: e234303f520b1a646989bc4d72c3f637, type: 3}
+  serviceController: {fileID: 0}
   onDecisionMade:
     m_PersistentCalls:
       m_Calls: []
@@ -319,4 +319,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clientLevel: 1
-  availableEmployees: []
+  availableEmployees:
+  - {fileID: 0}

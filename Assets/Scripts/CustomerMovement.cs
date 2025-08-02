@@ -156,11 +156,17 @@ public class CustomerMovement : MonoBehaviour
     private void SetDestination(Vector3 position)
     {
         agent.SetDestination(position);
+        Debug.Log($"Клиент {name} направляется к {position}.");
     }
 
     private bool HasReachedDestination()
     {
-        return !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f && !agent.hasPath;
+        bool reached = !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f && !agent.hasPath;
+        if (reached)
+        {
+            Debug.Log($"Клиент {name} достиг точки {agent.destination}.");
+        }
+        return reached;
     }
 
     [ContextMenu("Отправить на стул")]
@@ -182,8 +188,7 @@ public class CustomerMovement : MonoBehaviour
             Debug.LogError($"Нельзя отправить на стул: Недопустимое состояние ({currentState}).");
         }
     }
-
-    [ContextMenu("Отправить на услугу")]
+   
     public void SendToService()
     {
         if (currentState == CustomerState.Waiting || currentState == CustomerState.OnChair)
@@ -276,10 +281,10 @@ public class CustomerMovement : MonoBehaviour
         currentState = newState;
         if (newState == CustomerState.Waiting)
         {
-            waitingCoroutine = StartCoroutine(WaitForDecision(5f));
+            waitingCoroutine = StartCoroutine(WaitForDecision(10f));
             onEnterWaiting?.Invoke();
         }
-        LogState();
+        Debug.Log($"Клиент {name} перешёл в состояние {currentState}.");
     }
 
     private void LogState()

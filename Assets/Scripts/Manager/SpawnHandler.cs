@@ -3,13 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-[System.Serializable]
-public struct ClientPrefabConfig
-{
-    public GameObject prefab;
-    public int count;
-}
-
 public class SpawnHandler : MonoBehaviour
 {
     [SerializeField] private GameManager gameManager;
@@ -32,64 +25,83 @@ public class SpawnHandler : MonoBehaviour
 
     private IEnumerator SpawnClients()
     {
-        int totalClients = gameManager.BaseVisitors;
+        int totalClients = gameManager.TotalClients;
         if (totalClients <= 0)
         {
-            Debug.Log("SpawnHandler: baseVisitors равно 0, спавн не выполняется.");
+            Debug.Log("SpawnHandler: TotalClients равно 0, спавн не выполняется.");
             yield break;
         }
 
-        List<GameObject> prefabs = gameManager.ClientVisualModels[1];
-        if (prefabs.Count < 3)
+        List<(int type, GameObject prefab)> spawnList = new List<(int, GameObject)>();
+
+        List<GameObject> type1Prefabs = gameManager.ClientVisualModels[1];
+        if (type1Prefabs.Count < 3)
         {
-            Debug.LogError($"SpawnHandler: clientType1Prefabs содержит {prefabs.Count} префабов, требуется минимум 3.");
+            Debug.LogError($"SpawnHandler: clientType1Prefabs содержит {type1Prefabs.Count} префабов, требуется минимум 3.");
             yield break;
         }
 
-        List<int> positions = Enumerable.Range(0, totalClients).ToList();
-        List<GameObject> spawnList = new List<GameObject>(new GameObject[totalClients]);
-
-        for (int i = 0; i < prefabs.Count; i++)
+        List<int> type1Positions = Enumerable.Range(0, gameManager.BaseVisitors).ToList();
+        for (int i = 0; i < type1Prefabs.Count; i++)
         {
-            int randomPosition = Random.Range(0, positions.Count);
-            spawnList[positions[randomPosition]] = prefabs[i];
-            positions.RemoveAt(randomPosition);
+            int randomPosition = Random.Range(0, type1Positions.Count);
+            spawnList.Add((1, type1Prefabs[i]));
+            type1Positions.RemoveAt(randomPosition);
         }
 
-        for (int i = 0; i < totalClients; i++)
+        for (int i = type1Prefabs.Count; i < gameManager.BaseVisitors; i++)
         {
-            if (spawnList[i] == null)
+            spawnList.Add((1, type1Prefabs[Random.Range(0, type1Prefabs.Count)]));
+        }
+
+        foreach (var type in gameManager.ExtraVisitors)
+        {
+            if (!gameManager.ClientVisualModels.ContainsKey(type.Key) || gameManager.ClientVisualModels[type.Key].Count == 0)
             {
-                spawnList[i] = prefabs[Random.Range(0, prefabs.Count)];
+                Debug.LogError($"SpawnHandler: Нет префабов для типа {type.Key}.");
+                continue;
+            }
+            for (int i = 0; i < type.Value; i++)
+            {
+                GameObject prefab = gameManager.ClientVisualModels[type.Key][Random.Range(0, gameManager.ClientVisualModels[type.Key].Count)];
+                spawnList.Add((type.Key, prefab));
             }
         }
 
-        Dictionary<GameObject, int> distribution = new Dictionary<GameObject, int>();
-        foreach (var prefab in prefabs)
+        spawnList = spawnList.OrderBy(x => Random.value).ToList();
+
+        Dictionary<int, int> typeCounts = new Dictionary<int, int> { { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 } };
+        Dictionary<GameObject, int> type1Distribution = type1Prefabs.ToDictionary(p => p, _ => 0);
+
+        foreach (var (type, prefab) in spawnList)
         {
-            distribution[prefab] = 0;
-        }
-        foreach (var prefab in spawnList)
-        {
-            distribution[prefab]++;
+            typeCounts[type]++;
+            if (type == 1)
+            {
+                type1Distribution[prefab]++;
+            }
         }
 
-        string distributionLog = $"Всего клиентов: {totalClients}, Тип 1: {totalClients}, ";
-        foreach (var kvp in distribution)
+        string distributionLog = $"Всего клиентов: {totalClients}, Тип 1: {typeCounts[1]}";
+        if (typeCounts[1] > 0)
         {
-            distributionLog += $"{kvp.Key.name}: {kvp.Value}, ";
+            distributionLog += $", {string.Join(", ", type1Distribution.Select(kvp => $"{kvp.Key.name}: {kvp.Value}"))}";
         }
-        Debug.Log(distributionLog.TrimEnd(',', ' '));
+        if (typeCounts[2] > 0) distributionLog += $", Тип 2: {typeCounts[2]}";
+        if (typeCounts[3] > 0) distributionLog += $", Тип 3: {typeCounts[3]}";
+        if (typeCounts[4] > 0) distributionLog += $", Тип 4: {typeCounts[4]}";
+        Debug.Log(distributionLog);
 
-        for (int i = 0; i < totalClients; i++)
+        float maxInterval = totalClients > 0 ? gameManager.MaxDayDuration / totalClients : gameManager.MinSpawnDelay;
+        for (int i = 0; i < spawnList.Count; i++)
         {
-            yield return new WaitForSeconds(gameManager.MinSpawnDelay);
-            GameObject clientGO = Instantiate(spawnList[i], spawnPoint.position, Quaternion.identity);
+            yield return new WaitForSeconds(Random.Range(gameManager.MinSpawnDelay, maxInterval));
+            GameObject clientGO = Instantiate(spawnList[i].prefab, spawnPoint.position, Quaternion.identity);
             ClientRequest client = clientGO.GetComponent<ClientRequest>();
-            client.clientLevel = 1;
+            client.clientLevel = spawnList[i].type;
             gameManager.ClientPool.Add(client);
             gameManager.ClientsSpawnedToday++;
-            Debug.Log($"Клиент типа 1, префаб: {spawnList[i].name} заспавнен, всего: {gameManager.ClientsSpawnedToday}/{totalClients}");
+            Debug.Log($"Клиент типа {spawnList[i].type}, префаб: {spawnList[i].prefab.name}, позиция: {spawnPoint.position}, всего: {gameManager.ClientsSpawnedToday}/{totalClients}");
         }
     }
 }

@@ -2,23 +2,24 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [SerializeField] private int baseVisitors = 10; // Клиенты типа 1
-    [SerializeField] private Transform spawnPoint; // Точка спавна
-    [SerializeField] private int minSpawnDelay = 5; // Мин. задержка спавна (сек)
-    [SerializeField] private float maxDayDuration = 300f; // Длительность дня (сек)
-    [SerializeField] private float initialGold = 1000f; // Начальное золото
-    [SerializeField] private float initialPopularity = 100f; // Начальная популярность
-    [SerializeField] private List<GameObject> clientType1Prefabs; // Префабы клиентов типа 1
-    [SerializeField] private List<GameObject> clientType2Prefabs; // Префабы клиентов типа 2
-    [SerializeField] private List<GameObject> clientType3Prefabs; // Префабы клиентов типа 3
-    [SerializeField] private List<GameObject> clientType4Prefabs; // Префабы клиентов типа 4
+    [SerializeField] private int baseVisitors = 10;
+    [SerializeField] private Transform spawnPoint;
+    [SerializeField] private int minSpawnDelay = 7;
+    [SerializeField] private float maxDayDuration = 300f;
+    [SerializeField] private float initialGold = 1000f;
+    [SerializeField] private float initialPopularity = 100f;
+    [SerializeField] private List<GameObject> clientType1Prefabs;
+    [SerializeField] private List<GameObject> clientType2Prefabs;
+    [SerializeField] private List<GameObject> clientType3Prefabs;
+    [SerializeField] private List<GameObject> clientType4Prefabs;
     [SerializeField]
-    private Dictionary<string, float> goldPerService = new Dictionary<string, float> // Базовая награда за услугу
+    private Dictionary<string, float> goldPerService = new Dictionary<string, float>
     {
         { "Дрочка", 50f },
         { "Миньет", 60f },
@@ -29,11 +30,11 @@ public class GameManager : MonoBehaviour
         { "Раком", 50f },
         { "Стоя", 80f }
     };
-    [SerializeField] private float popularityPenalty = -10f; // Штраф за провал
-    [SerializeField] private float healingCost = 50f; // Стоимость лечения
-    [SerializeField] private List<EmployeeDataSO> availableEmployeeData; // Пул EmployeeDataSO
-    [SerializeField] private EmployeeDataSO testEmployeeData; // Выбор сотрудницы для теста
-    [SerializeField] private ClientType testClientType = ClientType.Type1; // Выбор типа клиента для теста
+    [SerializeField] private float popularityPenalty = -10f;
+    [SerializeField] private float healingCost = 50f;
+    [SerializeField] private List<EmployeeDataSO> availableEmployeeData;
+    [SerializeField] private EmployeeDataSO[] initialEmployees;
+    [SerializeField] private int maxClientsPerDay = 40;
 
     private List<ClientRequest> clientPool = new List<ClientRequest>();
     private Dictionary<int, int> extraVisitors = new Dictionary<int, int>();
@@ -44,6 +45,9 @@ public class GameManager : MonoBehaviour
     private int clientsSpawnedToday = 0;
     private int difficultyLevel = 1;
     private Dictionary<int, List<GameObject>> clientVisualModels;
+
+    public UnityEvent onStateChange;
+    public UnityEvent onEmployeeListChanged;
 
     public enum ClientType
     {
@@ -57,9 +61,9 @@ public class GameManager : MonoBehaviour
     public int MinSpawnDelay => minSpawnDelay;
     public float MaxDayDuration => maxDayDuration;
     public Dictionary<int, int> ExtraVisitors => extraVisitors;
-    public int TotalClients => baseVisitors + extraVisitors.Values.Sum();
+    public int TotalClients => Mathf.Min(baseVisitors + extraVisitors.Values.Sum(), maxClientsPerDay);
     public List<ClientRequest> ClientPool => clientPool;
-    public int ClientsSpawnedToday { get => clientsSpawnedToday; set => clientsSpawnedToday = value; }
+    public int ClientsSpawnedToday { get => clientsSpawnedToday; set { clientsSpawnedToday = value; onStateChange.Invoke(); } }
     public Dictionary<int, List<GameObject>> ClientVisualModels => clientVisualModels;
     public List<Employee> ActiveEmployees => activeEmployees;
     public int DifficultyLevel => difficultyLevel;
@@ -88,27 +92,58 @@ public class GameManager : MonoBehaviour
             { 4, clientType4Prefabs }
         };
 
+        if (initialEmployees.Length != 3)
+        {
+            Debug.LogError("GameManager: initialEmployees должен содержать ровно 3 сотрудницы.");
+        }
+        else
+        {
+            foreach (var employeeData in initialEmployees)
+            {
+                AddEmployee(employeeData);
+            }
+        }
+
         UpdateExtraVisitors();
-        LogGameState();
+        onStateChange.Invoke();
+    }
+
+    private void OnEnable()
+    {
+        onEmployeeListChanged.AddListener(SyncEmployeeLists);
+        onStateChange.AddListener(LogGameState);
+    }
+
+    private void OnDisable()
+    {
+        onEmployeeListChanged.RemoveListener(SyncEmployeeLists);
+        onStateChange.RemoveListener(LogGameState);
     }
 
     private void UpdateExtraVisitors()
     {
         extraVisitors.Clear();
+        int remainingClients = maxClientsPerDay - baseVisitors;
+        if (remainingClients <= 0) return;
+
         if (currentPopularity >= 500f)
         {
-            extraVisitors[2] = 4;
+            extraVisitors[2] = Mathf.Min(4, remainingClients);
+            remainingClients -= extraVisitors[2];
         }
-        if (currentPopularity >= 1000f)
+        if (currentPopularity >= 1000f && remainingClients > 0)
         {
-            extraVisitors[2] = 4;
-            extraVisitors[3] = 2;
+            extraVisitors[3] = Mathf.Min(2, remainingClients);
+            remainingClients -= extraVisitors[3];
         }
-        if (currentPopularity >= 1500f)
+        if (currentPopularity >= 1500f && remainingClients > 0)
         {
-            extraVisitors[2] = 4;
-            extraVisitors[3] = 2;
-            extraVisitors[4] = 1;
+            extraVisitors[4] = Mathf.Min(1, remainingClients);
+        }
+
+        if (baseVisitors + extraVisitors.Values.Sum() > maxClientsPerDay)
+        {
+            Debug.Log($"Лимит клиентов применён: {baseVisitors + extraVisitors.Values.Sum()} ограничено до {maxClientsPerDay}.");
         }
     }
 
@@ -143,6 +178,11 @@ public class GameManager : MonoBehaviour
         {
             int clientLevel = client.ClientLevel;
             string service = client.RequestedService;
+            if (!employee.Skills.ContainsKey(service) || !goldPerService.ContainsKey(service))
+            {
+                Debug.LogError($"ServeClient: Услуга {service} не найдена в навыках сотрудницы {employee.name} или goldPerService.");
+                return;
+            }
             int skillLevel = employee.Skills[service].level;
             float reward = clientLevel * skillLevel * goldPerService[service];
             currentGold += reward;
@@ -158,20 +198,26 @@ public class GameManager : MonoBehaviour
         }
 
         clientPool.Remove(client);
-        LogGameState();
+        onStateChange.Invoke();
     }
 
     public void HealEmployee(Employee employee)
     {
+        if (employee == null)
+        {
+            Debug.LogError("HealEmployee: Сотрудница null.");
+            return;
+        }
         if (employee.GetState() == Employee.EmployeeState.Sick && currentGold >= healingCost)
         {
             currentGold -= healingCost;
             employee.SetState(Employee.EmployeeState.Healing);
             Debug.Log($"Сотрудница {employee.name} отправлена на лечение за {healingCost} золота.");
+            onStateChange.Invoke();
         }
         else
         {
-            Debug.LogError($"Нельзя отправить на лечение: Недостаточно золота или сотрудница не больна.");
+            Debug.LogError($"Нельзя отправить на лечение: Недостаточно золота ({currentGold}/{healingCost}) или сотрудница {employee.name} не больна (состояние: {employee.GetState()}).");
         }
     }
 
@@ -189,7 +235,7 @@ public class GameManager : MonoBehaviour
         }
 
         UpdateExtraVisitors();
-        LogGameState();
+        onStateChange.Invoke();
     }
 
     [ContextMenu("End Day")]
@@ -198,31 +244,28 @@ public class GameManager : MonoBehaviour
         EndDay();
     }
 
-    [ContextMenu("Add Test Employee")]
-    public void AddTestEmployee()
+    private void AddEmployee(EmployeeDataSO employeeData)
     {
-        if (testEmployeeData == null)
+        if (employeeData == null || !availableEmployeeData.Contains(employeeData))
         {
-            Debug.LogError("TestEmployeeData не выбрана в GameManager.");
+            Debug.LogError($"GameManager: EmployeeDataSO {employeeData?.name} не найдена в availableEmployeeData или null.");
             return;
         }
-        if (availableEmployeeData.Contains(testEmployeeData) && !activeEmployees.Exists(e => e.Data == testEmployeeData))
+        if (activeEmployees.Exists(e => e.Data == employeeData))
         {
-            GameObject employeeGO = new GameObject(testEmployeeData.name);
-            Employee employee = employeeGO.AddComponent<Employee>();
-            employee.SetData(testEmployeeData);
-            activeEmployees.Add(employee);
-            SyncEmployeeLists();
-            if (EmployeeManager.Instance != null)
-            {
-                EmployeeManager.Instance.AddEmployeeData(testEmployeeData);
-            }
-            Debug.Log($"Тестовая сотрудница {testEmployeeData.name} добавлена.");
+            Debug.LogWarning($"GameManager: Сотрудница {employeeData.name} уже добавлена.");
+            return;
         }
-        else
+        GameObject employeeGO = new GameObject(employeeData.name);
+        Employee employee = employeeGO.AddComponent<Employee>();
+        employee.SetData(employeeData);
+        activeEmployees.Add(employee);
+        if (EmployeeManager.Instance != null)
         {
-            Debug.LogError($"Сотрудница {testEmployeeData.name} уже добавлена или отсутствует в availableEmployeeData.");
+            EmployeeManager.Instance.AddEmployeeData(employeeData);
         }
+        Debug.Log($"Сотрудница {employeeData.name} добавлена.");
+        onEmployeeListChanged.Invoke();
     }
 
     private void SyncEmployeeLists()
@@ -235,55 +278,35 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Синхронизировано: {clientPool.Count} клиентов, {activeEmployees.Count} сотрудниц.");
     }
 
-    [ContextMenu("Add Test Client")]
-    public void AddTestClient()
-    {
-        int clientType = (int)testClientType;
-        if (!clientVisualModels.ContainsKey(clientType) || clientVisualModels[clientType].Count == 0)
-        {
-            Debug.LogError($"Нет префабов клиента типа {clientType} для теста.");
-            return;
-        }
-        if (spawnPoint == null)
-        {
-            Debug.LogError("SpawnPoint не назначен в GameManager.");
-            return;
-        }
-        GameObject clientGO = Instantiate(clientVisualModels[clientType][Random.Range(0, clientVisualModels[clientType].Count)], spawnPoint.position, Quaternion.identity);
-        ClientRequest client = clientGO.GetComponent<ClientRequest>();
-        if (client == null)
-        {
-            Debug.LogError($"ClientRequest отсутствует на клиенте типа {clientType}.");
-            Destroy(clientGO);
-            return;
-        }
-        client.clientLevel = clientType;
-        clientPool.Add(client);
-        SyncEmployeeLists();
-        Debug.Log($"Тестовый клиент типа {clientType} добавлен на позиции {spawnPoint.position}.");
-        Debug.Log($"Запрос клиента после спавна: Услуга - {client.RequestedService}, Preferences - {string.Join(", ", client.Preferences)}, Specific: {(client.SpecificEmployee != null ? client.SpecificEmployee.name : "None")}");
-    }
-
     [ContextMenu("Test Serve Client")]
     public void TestServeClient()
     {
         if (activeEmployees.Count == 0 || clientPool.Count == 0)
         {
-            Debug.LogError("Тест невозможен: нет активных сотрудниц или клиентов.");
+            Debug.LogError("TestServeClient: Нет активных сотрудниц или клиентов.");
             return;
         }
         ClientRequest client = clientPool[0];
+        if (client == null)
+        {
+            Debug.LogError("TestServeClient: Клиент в clientPool[0] уничтожен.");
+            clientPool.RemoveAt(0);
+            return;
+        }
         Employee employee = client.SelectedEmployee != null ? client.SelectedEmployee : activeEmployees[0];
         if (client.SelectedEmployee == null)
         {
-            Debug.LogWarning($"Сотрудница не выбрана для клиента {client.name}, используется {employee.name}.");
+            Debug.LogWarning($"TestServeClient: Сотрудница не выбрана для клиента {client.name}, используется {employee.name}.");
         }
-        ServeClient(client, employee, client.IsMatch(employee));
+        bool isMatch = client.IsMatch(employee);
+        Debug.Log($"TestServeClient: Проверка соответствия для клиента {client.name}, сотрудница {employee.name}, результат: {isMatch}");
+        ServeClient(client, employee, isMatch);
     }
 
     private void LogGameState()
     {
-        Debug.Log($"День: {dayCount}, Золото: {currentGold}, Популярность: {currentPopularity}, Клиенты сегодня: {clientsSpawnedToday}, Сложность: {difficultyLevel}");
+        int expectedClients = TotalClients;
+        Debug.Log($"День: {dayCount}, Золото: {currentGold}, Популярность: {currentPopularity}, Ожидаемые клиенты: {expectedClients}, Сложность: {difficultyLevel}");
         Debug.Log($"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}");
     }
 
@@ -327,10 +350,8 @@ public class GameManager : MonoBehaviour
                 EmployeeDataSO data = Resources.Load<EmployeeDataSO>($"SO/Employee/{name}");
                 if (data != null)
                 {
-                    GameObject employeeGO = new GameObject(name);
-                    Employee employee = employeeGO.AddComponent<Employee>();
-                    employee.SetData(data);
-                    activeEmployees.Add(employee);
+                    AddEmployee(data);
+                    Employee employee = activeEmployees.Find(e => e.Data.name == name);
                     employee.SetState((Employee.EmployeeState)PlayerPrefs.GetInt($"EmployeeState_{name}", (int)Employee.EmployeeState.Available));
                     foreach (var skillName in data.BaseSkills)
                     {
@@ -338,17 +359,11 @@ public class GameManager : MonoBehaviour
                         employee.Skills[skillName].progress = PlayerPrefs.GetInt($"EmployeeSkillProgress_{name}_{skillName}", 0);
                     }
                     employee.StaminaCurrent = PlayerPrefs.GetFloat($"EmployeeStamina_{name}", employee.StaminaMax);
-                    if (EmployeeManager.Instance != null)
-                    {
-                        EmployeeManager.Instance.AddEmployeeData(data);
-                    }
                 }
             }
         }
 
-        SyncEmployeeLists();
-        Debug.Log("Прогресс загружен.");
-        LogGameState();
+        onStateChange.Invoke();
     }
 
     [ContextMenu("Heal Test Employee")]
@@ -359,6 +374,12 @@ public class GameManager : MonoBehaviour
             Debug.LogError("Нет активных сотрудниц для теста лечения.");
             return;
         }
-        HealEmployee(activeEmployees[0]);
+        Employee sickEmployee = activeEmployees.Find(e => e.GetState() == Employee.EmployeeState.Sick);
+        if (sickEmployee == null)
+        {
+            Debug.LogError("HealTestEmployee: Нет больных сотрудниц для лечения.");
+            return;
+        }
+        HealEmployee(sickEmployee);
     }
 }

@@ -25,8 +25,7 @@ public class EmployeeManager : MonoBehaviour
     {
         if (employeeDataSO != null && !employeeData.Contains(employeeDataSO))
         {
-            employeeData.Add(employeeDataSO);
-            Debug.Log($"EmployeeManager: Добавлена сотрудница {employeeDataSO.name}.");
+            employeeData.Add(employeeDataSO);            
         }
         else
         {

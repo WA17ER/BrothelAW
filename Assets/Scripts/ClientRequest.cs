@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using static CustomerMovement;
 
 public class ClientRequest : MonoBehaviour
 {
@@ -71,7 +72,7 @@ public class ClientRequest : MonoBehaviour
             selectedEmployee = specificEmployee;
         }
 
-        Debug.Log($"Запрос клиента сгенерирован в Waiting (level {clientLevel}): Услуга - {requestedService}, Preferences - {string.Join(", ", preferences)}, Specific: {(specificEmployee != null ? specificEmployee.name : "None")}");
+        Debug.Log($"Запрос клиента {name} сгенерирован в Waiting (level {clientLevel}): Услуга - {requestedService}, Preferences - {string.Join(", ", preferences)}, Specific: {(specificEmployee != null ? specificEmployee.name : "None")}");
     }
 
     public bool IsMatch(Employee employee)
@@ -129,7 +130,7 @@ public class ClientRequest : MonoBehaviour
     public void SelectEmployee(Employee employee)
     {
         var state = customerMovement.CurrentState;
-        if (state == CustomerMovement.CustomerState.Waiting || state == CustomerMovement.CustomerState.OnChair)
+        if (state == CustomerState.Waiting || state == CustomerState.OnChair)
         {
             if (IsMatch(employee))
             {
@@ -139,13 +140,13 @@ public class ClientRequest : MonoBehaviour
             }
             else
             {
-                Debug.Log("Запрос не совпадает, клиент уходит.");
+                Debug.Log($"Запрос не совпадает, клиент {name} уходит.");
                 customerMovement.ForceExit();
             }
         }
         else
         {
-            Debug.LogError("Нельзя выбрать: Недопустимое состояние.");
+            Debug.LogError($"Нельзя выбрать: Недопустимое состояние {state}.");
         }
     }
 }

@@ -5,53 +5,72 @@ using UnityEngine.Events;
 
 public class CustomerMovement : MonoBehaviour
 {
-    [SerializeField] private Transform registerPosition; // Позиция регистрации
-    [SerializeField] private Transform serviceDestination; // Позиция услуги
-    [SerializeField] private Transform exitPoint; // Точка выхода
-    [SerializeField] private ChairManager chairManager; // Менеджер стульев
-    [SerializeField] private ServiceController serviceController; // Контроллер услуги
-
-    public UnityEvent onDecisionMade; // Событие при принятии решения
-
+    [SerializeField] public ChairManager chairManager;
     private NavMeshAgent agent;
     private CustomerState currentState = CustomerState.WalkToRegister;
-    private Chair currentChair;
+    public Chair currentChair; // Изменено на public поле
     private Transform visual;
     private bool isDecisionMade = false;
-    private Coroutine waitingCoroutine;
-    private Coroutine chairCoroutine;
+    public Coroutine waitingCoroutine; // Изменено на public поле
+    public Coroutine chairCoroutine; // Изменено на public поле
+    private NavigationManager navigationManager;
+    private ClientRequest clientRequest;
+    private bool isWaitingEntered = false;
 
     public enum CustomerState
     {
-        WalkToRegister, // Идёт к регистрации
-        Waiting, // Ожидание
-        OnOccupyChair, // Занимает стул
-        OnChair, // На стуле
-        MoveToService, // Идёт к услуге
-        OnService, // На услуге
-        OnExit // На выход
+        WalkToRegister,
+        Waiting,
+        OnOccupyChair,
+        OnChair,
+        MoveToService,
+        OnService,
+        OnExit
     }
 
-    public CustomerState CurrentState => currentState;
+    public UnityEvent onDecisionMade;
+    public UnityEvent onEnterWaiting;
 
-    private ClientRequest clientRequest;
+    public CustomerState CurrentState => currentState;
+    public Transform Visual => visual;
 
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         visual = transform.Find("Visual");
         clientRequest = GetComponent<ClientRequest>();
-        if (agent == null || registerPosition == null || serviceDestination == null || exitPoint == null || chairManager == null || visual == null || serviceController == null || clientRequest == null)
+        navigationManager = FindObjectOfType<NavigationManager>();
+
+        ClientRequest[] clientRequests = GetComponents<ClientRequest>();
+        if (clientRequests.Length > 1)
         {
-            Debug.LogError("CustomerMovement: Отсутствуют компоненты или ссылки.");
-            enabled = false;
+            Debug.LogWarning($"Найдено {clientRequests.Length} компонентов ClientRequest на {gameObject.name}. Оставлен только первый.");
+            for (int i = 1; i < clientRequests.Length; i++)
+            {
+                Destroy(clientRequests[i]);
+            }
         }
+
+        if (agent == null || visual == null || clientRequest == null || navigationManager == null || chairManager == null)
+        {
+            Debug.LogWarning($"CustomerMovement: Отсутствуют компоненты или ссылки на {gameObject.name}.");
+            return;
+        }
+
+        if (navigationManager.RegisterPosition == null || navigationManager.ServiceDestination == null || navigationManager.ExitPoint == null)
+        {
+            Debug.LogWarning($"CustomerMovement: Точки навигации не назначены в NavigationManager для {gameObject.name}.");
+            return;
+        }
+
+        agent.avoidancePriority = Random.Range(0, 100);
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
+        Debug.Log($"Клиент {name} настроен: avoidancePriority = {agent.avoidancePriority}, obstacleAvoidanceType = {agent.obstacleAvoidanceType}");
     }
 
     private void Start()
     {
-        SetDestination(registerPosition.position);
-        LogState();
+        SetDestination(navigationManager.RegisterPosition.position);
     }
 
     private void Update()
@@ -59,10 +78,10 @@ public class CustomerMovement : MonoBehaviour
         switch (currentState)
         {
             case CustomerState.WalkToRegister:
-                if (HasReachedDestination())
+                if (HasReachedDestination() && !isWaitingEntered)
                 {
                     ChangeState(CustomerState.Waiting);
-                    waitingCoroutine = StartCoroutine(WaitForDecision(5f));
+                    isWaitingEntered = true;
                 }
                 break;
 
@@ -73,7 +92,6 @@ public class CustomerMovement : MonoBehaviour
                     if (currentChair != null)
                     {
                         currentChair.SetState(Chair.ChairState.IsOccupied);
-                        SeatVisualOnChair();
                     }
                     chairCoroutine = StartCoroutine(WaitOnChair(5f));
                 }
@@ -83,8 +101,16 @@ public class CustomerMovement : MonoBehaviour
                 if (HasReachedDestination())
                 {
                     ChangeState(CustomerState.OnService);
-                    agent.enabled = false;
-                    serviceController.EnterService(this);
+                    if (GameManager.Instance != null)
+                    {
+                        agent.enabled = false;
+                        GameManager.Instance.EnterService(this);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"GameManager не найден для клиента {name}.");
+                        ForceExit();
+                    }
                 }
                 break;
 
@@ -99,11 +125,12 @@ public class CustomerMovement : MonoBehaviour
 
     private IEnumerator WaitForDecision(float time)
     {
+        Debug.Log($"Клиент {name} начал ожидание решения ({time} секунд).");
         yield return new WaitForSeconds(time);
         if (!isDecisionMade)
         {
-            Debug.Log("Решение не принято, клиент уходит.");
-            SetDestination(exitPoint.position);
+            Debug.Log($"Решение для клиента {name} не принято, клиент уходит.");
+            SetDestination(navigationManager.ExitPoint.position);
             ChangeState(CustomerState.OnExit);
         }
     }
@@ -113,15 +140,14 @@ public class CustomerMovement : MonoBehaviour
         yield return new WaitForSeconds(time);
         if (currentState == CustomerState.OnChair)
         {
-            Debug.Log("Время ожидания на стуле истекло, клиент расстроен и уходит.");
+            Debug.Log($"Время ожидания на стуле истекло для клиента {name}, клиент уходит.");
             if (currentChair != null)
             {
-                ReturnVisualFromChair();
                 chairManager.ReturnChair(currentChair);
                 currentChair = null;
             }
             agent.enabled = true;
-            SetDestination(exitPoint.position);
+            SetDestination(navigationManager.ExitPoint.position);
             ChangeState(CustomerState.OnExit);
         }
     }
@@ -129,11 +155,17 @@ public class CustomerMovement : MonoBehaviour
     private void SetDestination(Vector3 position)
     {
         agent.SetDestination(position);
+        Debug.Log($"Клиент {name} направляется к {position}.");
     }
 
     private bool HasReachedDestination()
     {
-        return !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f && !agent.hasPath;
+        bool reached = !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f && !agent.hasPath;
+        if (reached)
+        {
+            Debug.Log($"Клиент {name} достиг точки {agent.destination}.");
+        }
+        return reached;
     }
 
     [ContextMenu("Отправить на стул")]
@@ -141,7 +173,7 @@ public class CustomerMovement : MonoBehaviour
     {
         if (currentState == CustomerState.Waiting)
         {
-            Debug.Log("Отправка клиента на стул.");
+            Debug.Log($"Отправка клиента {name} на стул.");
             isDecisionMade = true;
             if (waitingCoroutine != null)
             {
@@ -152,16 +184,15 @@ public class CustomerMovement : MonoBehaviour
         }
         else
         {
-            Debug.LogError("Нельзя отправить на стул: Недопустимое состояние.");
+            Debug.LogError($"Нельзя отправить на стул: Недопустимое состояние ({currentState}).");
         }
     }
 
-    [ContextMenu("Отправить на услугу")]
     public void SendToService()
     {
         if (currentState == CustomerState.Waiting || currentState == CustomerState.OnChair)
         {
-            Debug.Log("Отправка клиента на услугу.");
+            Debug.Log($"Отправка клиента {name} на услугу.");
             isDecisionMade = true;
             if (currentState == CustomerState.Waiting && waitingCoroutine != null)
             {
@@ -175,19 +206,18 @@ public class CustomerMovement : MonoBehaviour
                 }
                 if (currentChair != null)
                 {
-                    ReturnVisualFromChair();
                     chairManager.ReturnChair(currentChair);
                     currentChair = null;
                 }
                 agent.enabled = true;
             }
-            SetDestination(serviceDestination.position);
+            SetDestination(navigationManager.ServiceDestination.position);
             ChangeState(CustomerState.MoveToService);
             onDecisionMade?.Invoke();
         }
         else
         {
-            Debug.LogError("Нельзя отправить на услугу: Недопустимое состояние.");
+            Debug.LogError($"Нельзя отправить на услугу: Недопустимое состояние ({currentState}).");
         }
     }
 
@@ -195,7 +225,7 @@ public class CustomerMovement : MonoBehaviour
     {
         if (currentState == CustomerState.Waiting || currentState == CustomerState.OnChair)
         {
-            Debug.Log("Принудительный выход клиента.");
+            Debug.Log($"Принудительный выход клиента {name}.");
             if (currentState == CustomerState.Waiting && waitingCoroutine != null)
             {
                 StopCoroutine(waitingCoroutine);
@@ -208,19 +238,25 @@ public class CustomerMovement : MonoBehaviour
                 }
                 if (currentChair != null)
                 {
-                    ReturnVisualFromChair();
                     chairManager.ReturnChair(currentChair);
                     currentChair = null;
                 }
                 agent.enabled = true;
             }
-            SetDestination(exitPoint.position);
+            SetDestination(navigationManager.ExitPoint.position);
             ChangeState(CustomerState.OnExit);
         }
         else
         {
-            Debug.LogError("Нельзя принудительно выйти: Недопустимое состояние.");
+            Debug.LogError($"Нельзя принудительно выйти: Недопустимое состояние ({currentState}).");
         }
+    }
+
+    public void ExitService()
+    {
+        agent.enabled = true;
+        SetDestination(navigationManager.ExitPoint.position);
+        ChangeState(CustomerState.OnExit);
     }
 
     private void OccupyChair()
@@ -233,46 +269,20 @@ public class CustomerMovement : MonoBehaviour
         }
         else
         {
-            Debug.Log("Нет свободного стула, клиент уходит.");
-            SetDestination(exitPoint.position);
+            Debug.Log($"Нет свободного стула, клиент {name} уходит.");
+            SetDestination(navigationManager.ExitPoint.position);
             ChangeState(CustomerState.OnExit);
         }
-    }
-
-    private void SeatVisualOnChair()
-    {
-        agent.enabled = false;
-        visual.SetParent(currentChair.TopPoint);
-        visual.localPosition = Vector3.zero;
-        visual.localRotation = Quaternion.identity;
-        Debug.Log("Визуал посажен на стул");
-    }
-
-    private void ReturnVisualFromChair()
-    {
-        visual.SetParent(transform);
-        visual.localPosition = Vector3.zero;
-        visual.localRotation = Quaternion.identity;
-        Debug.Log("Визуал возвращён");
-    }
-
-    public void ExitService()
-    {
-        agent.enabled = true;
-        SetDestination(exitPoint.position);
-        ChangeState(CustomerState.OnExit);
     }
 
     private void ChangeState(CustomerState newState)
     {
         currentState = newState;
-        LogState();
+        if (newState == CustomerState.Waiting)
+        {
+            waitingCoroutine = StartCoroutine(WaitForDecision(10f));
+            onEnterWaiting?.Invoke();
+        }
+        Debug.Log($"Клиент {name} перешёл в состояние {currentState}.");
     }
-
-    private void LogState()
-    {
-        Debug.Log($"Клиент {name} состояние: {currentState}");
-    }
-
-    public Transform Visual => visual;
 }

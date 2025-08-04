@@ -1,46 +1,92 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
-
-[System.Serializable]
-public class EmployeeSkill
-{
-    public int level; // 0-10
-    public int progress; // 0-100
-}
 
 public class Employee : MonoBehaviour
 {
-    [SerializeField] private EmployeeDataSO data; // Ссылка на ScriptableObject
-    private Dictionary<string, EmployeeSkill> skills = new Dictionary<string, EmployeeSkill>();
-    [SerializeField] private float staminaMax = 100f;
-    private float staminaCurrent;
+    public EmployeeDataSO Data { get; private set; }
+    public string Race => Data.Race;
+    public List<string> BodyTypes => Data.BodyTypes;
+    public char BreastSize => Data.BreastSize;
+    public List<string> BaseSkills => Data.BaseSkills;
+    public Dictionary<string, (int level, int progress)> Skills { get; private set; }
+    public float StaminaCurrent { get; set; }
+    public float StaminaMax => 10f;
+    private EmployeeState state = EmployeeState.Available;
 
-    private void Awake()
+    public enum EmployeeState
     {
-        if (data == null)
+        Available,
+        Servicing,
+        Tired,
+        Sick,
+        Healing
+    }
+
+    public void SetData(EmployeeDataSO data)
+    {
+        Data = data;
+        Skills = new Dictionary<string, (int level, int progress)>();
+        foreach (var skill in data.BaseSkills)
         {
-            Debug.LogError("Employee: Data не назначена.");
-            enabled = false;
-            return;
+            Skills[skill] = (0, 0);
         }
+        StaminaCurrent = StaminaMax;
+    }
 
-        staminaCurrent = staminaMax;
+    public EmployeeState GetState()
+    {
+        return state;
+    }
 
-        // Инициализация навыков из baseSkills
-        foreach (var skillName in data.BaseSkills)
+    public void SetState(EmployeeState newState)
+    {
+        state = newState;
+        Debug.Log($"Состояние сотрудницы {name} изменено на {state}.");
+    }
+
+    public void UpdateStamina(float delta)
+    {
+        StaminaCurrent = Mathf.Clamp(StaminaCurrent - delta, 0, StaminaMax);
+        if (StaminaCurrent <= 0)
         {
-            skills[skillName] = new EmployeeSkill { level = 0, progress = 0 };
+            SetState(EmployeeState.Tired);
         }
     }
 
-    // Геттеры для параметров из data
-    public string Race => data.Race;
-    public List<string> BodyTypes => data.BodyTypes;
-    public char BreastSize => data.BreastSize;
-    public List<string> BaseSkills => data.BaseSkills;
+    public void CheckSick(string service)
+    {
+        float baseSickChance = 0.1f; // Базовый шанс болезни 10%
+        float chance = baseSickChance * (1 + Data.chanceSickModifier / 100); // Учитываем модификатор
+        chance = Mathf.Clamp(chance, 0f, 1f); // Ограничиваем до 0-100%
+        Debug.Log($"Шанс болезни для {name} при услуге {service}: {chance * 100:F2}%");
+        if (Random.value < chance)
+        {
+            SetState(EmployeeState.Sick);
+            Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}. Шанс болезни: {chance * 100:F2}%.");
+        }
+    }
 
-    // Геттеры для динамических параметров
-    public Dictionary<string, EmployeeSkill> Skills => skills;
-    public float StaminaMax => staminaMax;
-    public float StaminaCurrent => staminaCurrent;
+    public void EndDayUpdate()
+    {
+        if (state == EmployeeState.Healing)
+        {
+            SetState(EmployeeState.Available);
+        }
+        if (state == EmployeeState.Tired)
+        {
+            StaminaCurrent = StaminaMax;
+            SetState(EmployeeState.Available);
+        }
+    }
+
+    [ContextMenu("Set Max Level")]
+    public void SetMaxLevel()
+    {
+        foreach (var skill in Skills.Keys.ToList())
+        {
+            Skills[skill] = (10, 100);
+            Debug.Log($"Сотрудница {name} навык {skill} установлен на уровень 10 прогрессия 100");
+        }
+    }
 }

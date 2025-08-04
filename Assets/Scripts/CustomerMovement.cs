@@ -14,7 +14,7 @@ public class CustomerMovement : MonoBehaviour
     public Coroutine waitingCoroutine; // Изменено на public поле
     public Coroutine chairCoroutine; // Изменено на public поле
     private NavigationManager navigationManager;
-    private ClientRequest clientRequest;
+    private ClientData clientRequest;
     private bool isWaitingEntered = false;
 
     public enum CustomerState
@@ -38,10 +38,10 @@ public class CustomerMovement : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         visual = transform.Find("Visual");
-        clientRequest = GetComponent<ClientRequest>();
+        clientRequest = GetComponent<ClientData>();
         navigationManager = FindObjectOfType<NavigationManager>();
 
-        ClientRequest[] clientRequests = GetComponents<ClientRequest>();
+        ClientData[] clientRequests = GetComponents<ClientData>();
         if (clientRequests.Length > 1)
         {
             Debug.LogWarning($"Найдено {clientRequests.Length} компонентов ClientRequest на {gameObject.name}. Оставлен только первый.");

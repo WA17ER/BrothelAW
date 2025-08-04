@@ -1272,20 +1272,20 @@ MonoBehaviour:
   initialGold: 1000
   initialPopularity: 100
   clientType1Prefabs:
-  - {fileID: 4010948215591965781, guid: 0a9cec2faafc5764ab47ff19b86cbf65, type: 3}
-  - {fileID: 366608771598774911, guid: 9853647213f751a4482ef3c17cc1a2aa, type: 3}
-  - {fileID: 5181605088700993718, guid: 338c4fbee6fe0244baf96846029d6ee6, type: 3}
+  - {fileID: 5459388358296003657, guid: ec207ddd09f1d6b42acc0182e069f7fd, type: 3}
+  - {fileID: 5459388358296003657, guid: 82aefe2cb8012374ca72f41e9981aa70, type: 3}
+  - {fileID: 5459388358296003657, guid: 616fa2e573bfbbd43a8976f516862119, type: 3}
   clientType2Prefabs:
-  - {fileID: 5708233173562119952, guid: 035da865978c06e4682120153736719b, type: 3}
-  - {fileID: 569615595921519498, guid: 51a0c70dde2344b44ad4046190b75315, type: 3}
-  - {fileID: 7876076216555420821, guid: 485c8cbb833c27c49a91de76d63cc4bc, type: 3}
+  - {fileID: 5459388358296003657, guid: 59e4a9a361a4b6a4fb07a580bcc428df, type: 3}
+  - {fileID: 5459388358296003657, guid: 837995a9238186d4982d5dfdd39ce0a8, type: 3}
+  - {fileID: 5459388358296003657, guid: 9daadee3fb2a49b4ebd195e0d549e0f5, type: 3}
   clientType3Prefabs:
-  - {fileID: 1611283548082804855, guid: 502bf0fecbd4eea409975c14f19e238a, type: 3}
-  - {fileID: 7170501187706357678, guid: 6f8d1c080276c48478731a15b1a6c994, type: 3}
-  - {fileID: 828931211017004872, guid: 2898fa54c9776c3468e2032da8e960eb, type: 3}
+  - {fileID: 5459388358296003657, guid: 2310af6f3e1c9fb4db15ef76c1532ca3, type: 3}
+  - {fileID: 5459388358296003657, guid: 33f1b909dc4bba146910dc2982d30768, type: 3}
+  - {fileID: 5459388358296003657, guid: 9017ae342a493584cbb0f9646dd9099a, type: 3}
   clientType4Prefabs:
-  - {fileID: 6140686358798614232, guid: 5ec49d4ffce1ccd409d1241fd2d851de, type: 3}
-  - {fileID: 7189932594756907998, guid: 30bcfd11e647de3419aae72f106caf7b, type: 3}
+  - {fileID: 5459388358296003657, guid: 9c4210a724843c443a7cffd7fddb3810, type: 3}
+  - {fileID: 5459388358296003657, guid: 1abd7d43c7bc06e43b63f9fee34ab02f, type: 3}
   popularityPenalty: -10
   healingCost: 50
   availableEmployeeData:
@@ -1314,10 +1314,17 @@ MonoBehaviour:
   - {fileID: 11400000, guid: eb2429a9c04981149bed9e8a6e2c5f57, type: 2}
   - {fileID: 11400000, guid: 53019e6436082cf4b9ddbf6692929cc5, type: 2}
   maxClientsPerDay: 40
+  progressPerService: 10
   onStateChange:
     m_PersistentCalls:
       m_Calls: []
   onEmployeeListChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onEmployeeAssigned:
+    m_PersistentCalls:
+      m_Calls: []
+  onServiceCompleted:
     m_PersistentCalls:
       m_Calls: []
 --- !u!4 &1807229841

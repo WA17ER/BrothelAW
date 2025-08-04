@@ -18,18 +18,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] private List<GameObject> clientType2Prefabs;
     [SerializeField] private List<GameObject> clientType3Prefabs;
     [SerializeField] private List<GameObject> clientType4Prefabs;
-    [SerializeField]
-    private Dictionary<string, float> goldPerService = new Dictionary<string, float>
-    {
-        { "Дрочка", 50f },
-        { "Миньет", 60f },
-        { "Дрочка Сиськами", 70f },
-        { "Миссионерская", 80f },
-        { "Наездница", 90f },
-        { "Амазонка", 70f },
-        { "Раком", 50f },
-        { "Стоя", 80f }
-    };
     [SerializeField] private float popularityPenalty = -10f;
     [SerializeField] private float healingCost = 50f;
     [SerializeField] private List<EmployeeDataSO> availableEmployeeData;
@@ -37,7 +25,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int maxClientsPerDay = 40;
     [SerializeField] private float progressPerService = 10f;
 
-    private List<ClientRequest> clientPool = new List<ClientRequest>();
+    private List<ClientData> clientPool = new List<ClientData>();
     private Dictionary<int, int> extraVisitors = new Dictionary<int, int>();
     private List<Employee> activeEmployees = new List<Employee>();
     private float currentGold;
@@ -49,8 +37,8 @@ public class GameManager : MonoBehaviour
 
     public UnityEvent onStateChange;
     public UnityEvent onEmployeeListChanged;
-    public UnityEvent<ClientRequest, Employee> onEmployeeAssigned;
-    public UnityEvent<ClientRequest, Employee> onServiceCompleted;
+    public UnityEvent<ClientData, Employee> onEmployeeAssigned;
+    public UnityEvent<ClientData, Employee> onServiceCompleted;
 
     public enum ClientType
     {
@@ -65,7 +53,7 @@ public class GameManager : MonoBehaviour
     public float MaxDayDuration => maxDayDuration;
     public Dictionary<int, int> ExtraVisitors => extraVisitors;
     public int TotalClients => Mathf.Min(baseVisitors + extraVisitors.Values.Sum(), maxClientsPerDay);
-    public List<ClientRequest> ClientPool => clientPool;
+    public List<ClientData> ClientPool => clientPool;
     public int ClientsSpawnedToday { get => clientsSpawnedToday; set { clientsSpawnedToday = value; onStateChange.Invoke(); } }
     public Dictionary<int, List<GameObject>> ClientVisualModels => clientVisualModels;
     public List<Employee> ActiveEmployees => activeEmployees;
@@ -154,30 +142,30 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void OnEmployeeAssignedHandler(ClientRequest client, Employee employee)
+    private void OnEmployeeAssignedHandler(ClientData client, Employee employee)
     {
-        int clientLevel = client.ClientLevel;
+        int clientLevel = (int)client.Data.clientType;
         string service = client.RequestedService;
-        if (!employee.Skills.ContainsKey(service) || !goldPerService.ContainsKey(service))
+        if (!employee.Data.servicePrices.ContainsKey(service))
         {
-            Debug.LogError($"OnEmployeeAssigned: Услуга {service} не найдена в навыках сотрудницы {employee.name} или goldPerService.");
+            Debug.LogError($"OnEmployeeAssigned: Услуга {service} не найдена в servicePrices сотрудницы {employee.name}.");
             return;
         }
         int skillLevel = employee.Skills[service].level;
-        float reward = clientLevel * (skillLevel + 1) * goldPerService[service];
+        float reward = clientLevel * (skillLevel + 1) * employee.Data.servicePrices[service];
         currentGold += reward;
         employee.SetState(Employee.EmployeeState.Servicing);
         Debug.Log($"Золото начислено: +{reward} для клиента {client.name} с сотрудницей {employee.name}.");
         onStateChange.Invoke();
     }
 
-    private void OnServiceCompletedHandler(ClientRequest client, Employee employee)
+    private void OnServiceCompletedHandler(ClientData client, Employee employee)
     {
         currentPopularity += 5f;
         Debug.Log($"Популярность начислена: +5 для клиента {client.name} после обслуживания.");
         if (employee != null)
         {
-            employee.CheckSick(client.RequestedService);
+            employee.CheckSick(client.RequestedService, client.Data.isSick);
 
             string service = client.RequestedService;
             if (!employee.Skills.ContainsKey(service))
@@ -216,48 +204,19 @@ public class GameManager : MonoBehaviour
 
     public void EnterService(CustomerMovement customer)
     {
-        ClientRequest client = customer.GetComponent<ClientRequest>();
+        ClientData client = customer.GetComponent<ClientData>();
         Debug.Log($"Клиент {customer.name} начал услугу.");
         customer.Visual.gameObject.SetActive(false);
         StartCoroutine(ServiceTimer(5f, customer, client));
     }
 
-    private IEnumerator ServiceTimer(float time, CustomerMovement customer, ClientRequest client)
+    private IEnumerator ServiceTimer(float time, CustomerMovement customer, ClientData client)
     {
         yield return new WaitForSeconds(time);
         customer.Visual.gameObject.SetActive(true);
         Debug.Log($"Клиент {customer.name} закончил услугу.");
         onServiceCompleted.Invoke(client, client.SelectedEmployee);
         customer.ExitService();
-    }
-
-    public void ServeClient(ClientRequest client, Employee employee, bool success)
-    {
-        if (success)
-        {
-            int clientLevel = client.ClientLevel;
-            string service = client.RequestedService;
-            if (!employee.Skills.ContainsKey(service) || !goldPerService.ContainsKey(service))
-            {
-                Debug.LogError($"ServeClient: Услуга {service} не найдена в навыках сотрудницы {employee.name} или goldPerService.");
-                return;
-            }
-            int skillLevel = employee.Skills[service].level;
-            float reward = clientLevel * (skillLevel + 1) * goldPerService[service];
-            currentGold += reward;
-            currentPopularity += 5f;
-            employee.SetState(Employee.EmployeeState.Servicing);
-
-            Debug.Log($"Клиент обслужен: +{reward} золота, +5 популярности.");
-        }
-        else
-        {
-            currentPopularity += popularityPenalty;
-            Debug.Log($"Клиент не обслужен: {popularityPenalty} популярности.");
-        }
-
-        clientPool.Remove(client);
-        onStateChange.Invoke();
     }
 
     public void HealEmployee(Employee employee)

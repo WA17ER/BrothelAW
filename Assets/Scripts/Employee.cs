@@ -54,10 +54,15 @@ public class Employee : MonoBehaviour
         }
     }
 
-    public void CheckSick(string service)
+    public void CheckSick(string service, bool clientIsSick)
     {
+        if (!clientIsSick)
+        {
+            Debug.Log($"Сотрудница {name} не заболела: клиент здоров.");
+            return;
+        }
         float baseSickChance = 0.1f; // Базовый шанс болезни 10%
-        float chance = baseSickChance * (1 + Data.chanceSickModifier / 100); // Учитываем модификатор
+        float chance = baseSickChance * (1 - Data.sickResistance / 100); // Учитываем сопротивление
         chance = Mathf.Clamp(chance, 0f, 1f); // Ограничиваем до 0-100%
         Debug.Log($"Шанс болезни для {name} при услуге {service}: {chance * 100:F2}%");
         if (Random.value < chance)

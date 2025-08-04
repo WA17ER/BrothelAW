@@ -35,6 +35,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private List<EmployeeDataSO> availableEmployeeData;
     [SerializeField] private EmployeeDataSO[] initialEmployees;
     [SerializeField] private int maxClientsPerDay = 40;
+    [SerializeField] private float progressPerService = 10f;
 
     private List<ClientRequest> clientPool = new List<ClientRequest>();
     private Dictionary<int, int> extraVisitors = new Dictionary<int, int>();
@@ -48,6 +49,8 @@ public class GameManager : MonoBehaviour
 
     public UnityEvent onStateChange;
     public UnityEvent onEmployeeListChanged;
+    public UnityEvent<ClientRequest, Employee> onEmployeeAssigned;
+    public UnityEvent<ClientRequest, Employee> onServiceCompleted;
 
     public enum ClientType
     {
@@ -112,12 +115,16 @@ public class GameManager : MonoBehaviour
     {
         onEmployeeListChanged.AddListener(SyncEmployeeLists);
         onStateChange.AddListener(LogGameState);
+        onEmployeeAssigned.AddListener(OnEmployeeAssignedHandler);
+        onServiceCompleted.AddListener(OnServiceCompletedHandler);
     }
 
     private void OnDisable()
     {
         onEmployeeListChanged.RemoveListener(SyncEmployeeLists);
         onStateChange.RemoveListener(LogGameState);
+        onEmployeeAssigned.RemoveListener(OnEmployeeAssignedHandler);
+        onServiceCompleted.RemoveListener(OnServiceCompletedHandler);
     }
 
     private void UpdateExtraVisitors()
@@ -147,6 +154,66 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void OnEmployeeAssignedHandler(ClientRequest client, Employee employee)
+    {
+        int clientLevel = client.ClientLevel;
+        string service = client.RequestedService;
+        if (!employee.Skills.ContainsKey(service) || !goldPerService.ContainsKey(service))
+        {
+            Debug.LogError($"OnEmployeeAssigned: Услуга {service} не найдена в навыках сотрудницы {employee.name} или goldPerService.");
+            return;
+        }
+        int skillLevel = employee.Skills[service].level;
+        float reward = clientLevel * (skillLevel + 1) * goldPerService[service];
+        currentGold += reward;
+        employee.SetState(Employee.EmployeeState.Servicing);
+        Debug.Log($"Золото начислено: +{reward} для клиента {client.name} с сотрудницей {employee.name}.");
+        onStateChange.Invoke();
+    }
+
+    private void OnServiceCompletedHandler(ClientRequest client, Employee employee)
+    {
+        currentPopularity += 5f;
+        Debug.Log($"Популярность начислена: +5 для клиента {client.name} после обслуживания.");
+        if (employee != null)
+        {
+            employee.CheckSick(client.RequestedService);
+
+            string service = client.RequestedService;
+            if (!employee.Skills.ContainsKey(service))
+            {
+                Debug.LogError($"OnServiceCompleted: Услуга {service} не найдена в навыках сотрудницы {employee.name}.");
+                return;
+            }
+            var currentSkill = employee.Skills[service];
+            int newProgress = currentSkill.progress;
+            int newLevel = currentSkill.level;
+
+            if (newLevel < 10)
+            {
+                newProgress += (int)progressPerService;
+                if (newProgress >= 100)
+                {
+                    newLevel++;
+                    newProgress = 0;
+                }
+            }
+            else
+            {
+                newProgress = 100;
+            }
+
+            employee.Skills[service] = (newLevel, newProgress);
+            Debug.Log($"Сотрудница {employee.name} навык {service} уровень {newLevel} прогрессия {newProgress}");
+        }
+        else
+        {
+            Debug.LogWarning($"Сотрудница не выбрана для клиента {client.name} при завершении обслуживания.");
+        }
+        clientPool.Remove(client);
+        onStateChange.Invoke();
+    }
+
     public void EnterService(CustomerMovement customer)
     {
         ClientRequest client = customer.GetComponent<ClientRequest>();
@@ -160,15 +227,7 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(time);
         customer.Visual.gameObject.SetActive(true);
         Debug.Log($"Клиент {customer.name} закончил услугу.");
-        if (client.SelectedEmployee != null)
-        {
-            client.SelectedEmployee.UpdateStamina(1f);
-            client.SelectedEmployee.CheckSick(client.RequestedService);
-        }
-        else
-        {
-            Debug.LogWarning($"Сотрудница не выбрана для клиента {customer.name}.");
-        }
+        onServiceCompleted.Invoke(client, client.SelectedEmployee);
         customer.ExitService();
     }
 
@@ -184,7 +243,7 @@ public class GameManager : MonoBehaviour
                 return;
             }
             int skillLevel = employee.Skills[service].level;
-            float reward = clientLevel * skillLevel * goldPerService[service];
+            float reward = clientLevel * (skillLevel + 1) * goldPerService[service];
             currentGold += reward;
             currentPopularity += 5f;
             employee.SetState(Employee.EmployeeState.Servicing);
@@ -278,31 +337,6 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Синхронизировано: {clientPool.Count} клиентов, {activeEmployees.Count} сотрудниц.");
     }
 
-    [ContextMenu("Test Serve Client")]
-    public void TestServeClient()
-    {
-        if (activeEmployees.Count == 0 || clientPool.Count == 0)
-        {
-            Debug.LogError("TestServeClient: Нет активных сотрудниц или клиентов.");
-            return;
-        }
-        ClientRequest client = clientPool[0];
-        if (client == null)
-        {
-            Debug.LogError("TestServeClient: Клиент в clientPool[0] уничтожен.");
-            clientPool.RemoveAt(0);
-            return;
-        }
-        Employee employee = client.SelectedEmployee != null ? client.SelectedEmployee : activeEmployees[0];
-        if (client.SelectedEmployee == null)
-        {
-            Debug.LogWarning($"TestServeClient: Сотрудница не выбрана для клиента {client.name}, используется {employee.name}.");
-        }
-        bool isMatch = client.IsMatch(employee);
-        Debug.Log($"TestServeClient: Проверка соответствия для клиента {client.name}, сотрудница {employee.name}, результат: {isMatch}");
-        ServeClient(client, employee, isMatch);
-    }
-
     private void LogGameState()
     {
         int expectedClients = TotalClients;
@@ -355,8 +389,9 @@ public class GameManager : MonoBehaviour
                     employee.SetState((Employee.EmployeeState)PlayerPrefs.GetInt($"EmployeeState_{name}", (int)Employee.EmployeeState.Available));
                     foreach (var skillName in data.BaseSkills)
                     {
-                        employee.Skills[skillName].level = PlayerPrefs.GetInt($"EmployeeSkillLevel_{name}_{skillName}", 0);
-                        employee.Skills[skillName].progress = PlayerPrefs.GetInt($"EmployeeSkillProgress_{name}_{skillName}", 0);
+                        var currentSkill = employee.Skills[skillName];
+                        employee.Skills[skillName] = (PlayerPrefs.GetInt($"EmployeeSkillLevel_{name}_{skillName}", 0),
+                                                     PlayerPrefs.GetInt($"EmployeeSkillProgress_{name}_{skillName}", 0));
                     }
                     employee.StaminaCurrent = PlayerPrefs.GetFloat($"EmployeeStamina_{name}", employee.StaminaMax);
                 }

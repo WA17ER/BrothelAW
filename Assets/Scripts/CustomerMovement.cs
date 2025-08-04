@@ -8,11 +8,11 @@ public class CustomerMovement : MonoBehaviour
     [SerializeField] public ChairManager chairManager;
     private NavMeshAgent agent;
     private CustomerState currentState = CustomerState.WalkToRegister;
-    private Chair currentChair;
+    public Chair currentChair; // Изменено на public поле
     private Transform visual;
     private bool isDecisionMade = false;
-    private Coroutine waitingCoroutine;
-    private Coroutine chairCoroutine;
+    public Coroutine waitingCoroutine; // Изменено на public поле
+    public Coroutine chairCoroutine; // Изменено на public поле
     private NavigationManager navigationManager;
     private ClientRequest clientRequest;
     private bool isWaitingEntered = false;
@@ -71,7 +71,6 @@ public class CustomerMovement : MonoBehaviour
     private void Start()
     {
         SetDestination(navigationManager.RegisterPosition.position);
-        LogState();
     }
 
     private void Update()
@@ -188,7 +187,7 @@ public class CustomerMovement : MonoBehaviour
             Debug.LogError($"Нельзя отправить на стул: Недопустимое состояние ({currentState}).");
         }
     }
-   
+
     public void SendToService()
     {
         if (currentState == CustomerState.Waiting || currentState == CustomerState.OnChair)
@@ -253,6 +252,13 @@ public class CustomerMovement : MonoBehaviour
         }
     }
 
+    public void ExitService()
+    {
+        agent.enabled = true;
+        SetDestination(navigationManager.ExitPoint.position);
+        ChangeState(CustomerState.OnExit);
+    }
+
     private void OccupyChair()
     {
         currentChair = chairManager.GetFreeChair();
@@ -269,13 +275,6 @@ public class CustomerMovement : MonoBehaviour
         }
     }
 
-    public void ExitService()
-    {
-        agent.enabled = true;
-        SetDestination(navigationManager.ExitPoint.position);
-        ChangeState(CustomerState.OnExit);
-    }
-
     private void ChangeState(CustomerState newState)
     {
         currentState = newState;
@@ -285,10 +284,5 @@ public class CustomerMovement : MonoBehaviour
             onEnterWaiting?.Invoke();
         }
         Debug.Log($"Клиент {name} перешёл в состояние {currentState}.");
-    }
-
-    private void LogState()
-    {
-        Debug.Log($"Клиент {name} состояние: {currentState}");
     }
 }

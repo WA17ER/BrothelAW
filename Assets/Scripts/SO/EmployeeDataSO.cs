@@ -1,18 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "EmployeeDataSO", menuName = "Employee/EmployeeDataSO")]
+[CreateAssetMenu(fileName = "EmployeeData", menuName = "ScriptableObjects/EmployeeDataSO", order = 1)]
 public class EmployeeDataSO : ScriptableObject
 {
-    [SerializeField] private string race; // Раса
-    [SerializeField] private List<string> bodyTypes; // Типы тела
-    [SerializeField] private char breastSize; // Размер груди (A, B, C и т.д.)
-    [SerializeField] private List<string> baseSkills; // Базовые навыки
-    [SerializeField] private float sickChanceModifier; // Модификатор шанса болезни (e.g. +0.02 для Succubus, -0.01 для Elf)
-
-    public string Race => race;
-    public List<string> BodyTypes => bodyTypes;
-    public char BreastSize => breastSize;
-    public List<string> BaseSkills => baseSkills;
-    public float SickChanceModifier => sickChanceModifier;
+    public string employeeName;
+    public string Race;
+    public List<string> BodyTypes;
+    public char BreastSize;
+    public List<string> BaseSkills;
+    public float hireCost;
+    public float hirePopularity;
+    [Tooltip("Процентное увеличение базового шанса болезни (например, 10 для +10%)")]
+    public float chanceSickModifier = 10f; // По умолчанию +10% к базовому шансу
 }

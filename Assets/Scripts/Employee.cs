@@ -1,170 +1,92 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Employee : MonoBehaviour
 {
-    [SerializeField] private EmployeeDataSO data; // Ссылка на ScriptableObject
-    private Dictionary<string, EmployeeSkill> skills = new Dictionary<string, EmployeeSkill>();
-    [SerializeField] private float staminaMax = 100f;
-    private float staminaCurrent;
-    private EmployeeState employeeState = EmployeeState.Available;
-
-    public class EmployeeSkill
-    {
-        public int level; // 0-10
-        public int progress; // 0-100
-    }
+    public EmployeeDataSO Data { get; private set; }
+    public string Race => Data.Race;
+    public List<string> BodyTypes => Data.BodyTypes;
+    public char BreastSize => Data.BreastSize;
+    public List<string> BaseSkills => Data.BaseSkills;
+    public Dictionary<string, (int level, int progress)> Skills { get; private set; }
+    public float StaminaCurrent { get; set; }
+    public float StaminaMax => 10f;
+    private EmployeeState state = EmployeeState.Available;
 
     public enum EmployeeState
     {
-        Available, // Доступна для услуг
-        Advertising, // Занимается рекламой
-        Servicing, // Оказывает услугу
-        Tired, // Устала (стамина 0)
-        Sick, // Больна
-        Healing // На лечении
+        Available,
+        Servicing,
+        Tired,
+        Sick,
+        Healing
     }
 
-    private void Awake()
+    public void SetData(EmployeeDataSO data)
     {
-        if (data == null)
+        Data = data;
+        Skills = new Dictionary<string, (int level, int progress)>();
+        foreach (var skill in data.BaseSkills)
         {
-            Debug.LogWarning($"Employee: Data не назначена для {name}. Ожидается установка через SetData.");
-            return;
+            Skills[skill] = (0, 0);
         }
-
-        InitializeEmployee();
+        StaminaCurrent = StaminaMax;
     }
 
-    private void InitializeEmployee()
+    public EmployeeState GetState()
     {
-        staminaCurrent = staminaMax;
-        skills.Clear();
-        foreach (var skillName in data.BaseSkills)
-        {
-            skills[skillName] = new EmployeeSkill { level = 0, progress = 0 };
-        }
-        Debug.Log($"Сотрудница {name} инициализирована с данными {data.name}.");
+        return state;
     }
 
-    public void SetData(EmployeeDataSO newData)
+    public void SetState(EmployeeState newState)
     {
-        if (newData != null)
-        {
-            data = newData;
-            InitializeEmployee();
-            Debug.Log($"Данные сотрудницы {name} обновлены: {data.name}");
-        }
-        else
-        {
-            Debug.LogError("Employee: Нельзя установить null Data.");
-        }
+        state = newState;
+        Debug.Log($"Состояние сотрудницы {name} изменено на {state}.");
     }
 
-    public void UpdateStamina(float cost)
+    public void UpdateStamina(float delta)
     {
-        if (employeeState == EmployeeState.Servicing)
+        StaminaCurrent = Mathf.Clamp(StaminaCurrent - delta, 0, StaminaMax);
+        if (StaminaCurrent <= 0)
         {
-            float previousStamina = staminaCurrent;
-            staminaCurrent = Mathf.Max(0, staminaCurrent - cost);
-            Debug.Log($"Стамина сотрудницы {name} уменьшена на {cost} с {previousStamina} до {staminaCurrent}.");
-            if (staminaCurrent <= 0)
-            {
-                SetState(EmployeeState.Tired);
-                Debug.Log($"Сотрудница {name} устала, стамина 0.");
-            }
+            SetState(EmployeeState.Tired);
         }
     }
 
     public void CheckSick(string service)
     {
-        if (employeeState == EmployeeState.Servicing)
+        float baseSickChance = 0.1f; // Базовый шанс болезни 10%
+        float chance = baseSickChance * (1 + Data.chanceSickModifier / 100); // Учитываем модификатор
+        chance = Mathf.Clamp(chance, 0f, 1f); // Ограничиваем до 0-100%
+        Debug.Log($"Шанс болезни для {name} при услуге {service}: {chance * 100:F2}%");
+        if (Random.value < chance)
         {
-            if (!skills.ContainsKey(service))
-            {
-                Debug.LogError($"Услуга {service} не найдена в навыках сотрудницы {name}.");
-                return;
-            }
-            int skillLevel = skills[service].level;
-            float sickChance = 0.05f - 0.01f * skillLevel + data.SickChanceModifier;
-            Debug.Log($"Шанс болезни для {name} при услуге {service}: {sickChance * 100:F2}%");
-            if (Random.value <= sickChance)
-            {
-                SetState(EmployeeState.Sick);
-                Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}.");
-            }
+            SetState(EmployeeState.Sick);
+            Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}. Шанс болезни: {chance * 100:F2}%.");
         }
-    }
-
-    public void ResetStamina()
-    {
-        staminaCurrent = staminaMax;
-        Debug.Log($"Стамина сотрудницы {name} восстановлена до {staminaMax}.");
-    }
-
-    public void SetState(EmployeeState newState)
-    {
-        employeeState = newState;
-        Debug.Log($"Состояние сотрудницы {name} изменено на {newState}.");
-    }
-
-    public EmployeeState GetState()
-    {
-        return employeeState;
     }
 
     public void EndDayUpdate()
     {
-        if (employeeState == EmployeeState.Tired || employeeState == EmployeeState.Servicing)
+        if (state == EmployeeState.Healing)
         {
             SetState(EmployeeState.Available);
-            ResetStamina();
         }
-        else if (employeeState == EmployeeState.Healing)
+        if (state == EmployeeState.Tired)
         {
+            StaminaCurrent = StaminaMax;
             SetState(EmployeeState.Available);
-            ResetStamina();
-            Debug.Log($"Сотрудница {name} вылечилась.");
         }
-        else if (employeeState == EmployeeState.Sick)
+    }
+
+    [ContextMenu("Set Max Level")]
+    public void SetMaxLevel()
+    {
+        foreach (var skill in Skills.Keys.ToList())
         {
-            if (Random.Range(1, 4) == 1)
-            {
-                SetState(EmployeeState.Available);
-                ResetStamina();
-                Debug.Log($"Сотрудница {name} выздоровела автоматически.");
-            }
+            Skills[skill] = (10, 100);
+            Debug.Log($"Сотрудница {name} навык {skill} установлен на уровень 10 прогрессия 100");
         }
     }
-
-    [ContextMenu("Set Servicing")]
-    public void SetServicing()
-    {
-        SetState(EmployeeState.Servicing);
-    }
-
-    [ContextMenu("Test Stamina")]
-    public void TestStamina()
-    {
-        UpdateStamina(100f);
-    }
-
-    [ContextMenu("Test Sick")]
-    public void TestSick()
-    {
-        CheckSick("Missionary");
-    }
-
-    // Геттеры для параметров из data
-    public EmployeeDataSO Data => data;
-    public string Race => data.Race;
-    public List<string> BodyTypes => data.BodyTypes;
-    public char BreastSize => data.BreastSize;
-    public List<string> BaseSkills => data.BaseSkills;
-    public float SickChanceModifier => data.SickChanceModifier;
-
-    // Геттеры для динамических параметров
-    public Dictionary<string, EmployeeSkill> Skills => skills;
-    public float StaminaMax => staminaMax;
-    public float StaminaCurrent { get => staminaCurrent; set => staminaCurrent = value; }
 }

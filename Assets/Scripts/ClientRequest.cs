@@ -114,8 +114,8 @@ public class ClientRequest : MonoBehaviour
         return true;
     }
 
-    [ContextMenu("Выбрать сотрудницу 0")]
-    public void SelectEmployee0()
+    [ContextMenu("Назначить первую сотрудницу")]
+    public void AssignFirstEmployee()
     {
         if (availableEmployees.Count > 0)
         {
@@ -124,6 +124,7 @@ public class ClientRequest : MonoBehaviour
         else
         {
             Debug.LogError($"Нет доступных сотрудниц для клиента {name}.");
+            customerMovement.ForceExit();
         }
     }
 
@@ -136,6 +137,7 @@ public class ClientRequest : MonoBehaviour
             {
                 selectedEmployee = employee;
                 Debug.Log($"Сотрудница {employee.name} выбрана для клиента {name}. SelectedEmployee: {(selectedEmployee != null ? selectedEmployee.name : "null")}");
+                GameManager.Instance.onEmployeeAssigned.Invoke(this, employee);
                 customerMovement.SendToService();
             }
             else
@@ -146,7 +148,7 @@ public class ClientRequest : MonoBehaviour
         }
         else
         {
-            Debug.LogError($"Нельзя выбрать: Недопустимое состояние {state}.");
+            Debug.LogError($"Нельзя выбрать сотрудницу: Недопустимое состояние {state}.");
         }
     }
 }

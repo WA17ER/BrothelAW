@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clientType: 1
   totalGold: 200
-  sickChance: 50
-  isSick: 0
+  sickChance: 100
+  isSick: 1

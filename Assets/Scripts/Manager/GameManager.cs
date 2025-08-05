@@ -28,12 +28,16 @@ public class GameManager : MonoBehaviour
     private List<ClientData> clientPool = new List<ClientData>();
     private Dictionary<int, int> extraVisitors = new Dictionary<int, int>();
     private List<Employee> activeEmployees = new List<Employee>();
+    private List<Employee> sickEmployees = new List<Employee>();
     private float currentGold;
     private float currentPopularity;
     private int dayCount = 1;
     private int clientsSpawnedToday = 0;
     private int difficultyLevel = 1;
     private Dictionary<int, List<GameObject>> clientVisualModels;
+    private bool isDayActive = false;
+    private bool isDayPaused = false;
+    private Coroutine dayCycleCoroutine;
 
     public UnityEvent onStateChange;
     public UnityEvent onEmployeeListChanged;
@@ -57,7 +61,9 @@ public class GameManager : MonoBehaviour
     public int ClientsSpawnedToday { get => clientsSpawnedToday; set { clientsSpawnedToday = value; onStateChange.Invoke(); } }
     public Dictionary<int, List<GameObject>> ClientVisualModels => clientVisualModels;
     public List<Employee> ActiveEmployees => activeEmployees;
+    public List<Employee> SickEmployees => sickEmployees;
     public int DifficultyLevel => difficultyLevel;
+    public bool IsDayPaused => isDayPaused;
 
     private void Awake()
     {
@@ -71,7 +77,6 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-
         currentGold = initialGold;
         currentPopularity = initialPopularity;
 
@@ -142,6 +147,110 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    [ContextMenu("Start Day")]
+    public void StartDay()
+    {
+        if (isDayActive)
+        {
+            Debug.LogWarning("День уже активен, нельзя начать новый.");
+            return;
+        }
+        isDayActive = true;
+        isDayPaused = false;
+        clientsSpawnedToday = 0;
+        clientPool.Clear();
+        UpdateExtraVisitors();
+        Debug.Log($"День {dayCount} начался.");
+        if (SpawnHandler.Instance != null)
+        {
+            SpawnHandler.Instance.StartSpawning();
+        }
+        else
+        {
+            Debug.LogError("SpawnHandler не найден.");
+        }
+        dayCycleCoroutine = StartCoroutine(DayCycle());
+    }
+
+    [ContextMenu("Pause Day")]
+    public void PauseDay()
+    {
+        if (!isDayActive)
+        {
+            Debug.LogWarning("День не активен, нельзя поставить на паузу.");
+            return;
+        }
+        if (isDayPaused)
+        {
+            Debug.LogWarning("День уже на паузе.");
+            return;
+        }
+        isDayPaused = true;
+        Debug.Log($"День {dayCount} поставлен на паузу.");
+
+        if (SpawnHandler.Instance != null)
+        {
+            SpawnHandler.Instance.PauseSpawning();
+        }
+
+        foreach (var client in clientPool)
+        {
+            var customerMovement = client.GetComponent<CustomerMovement>();
+            if (customerMovement != null)
+            {
+                customerMovement.Pause();
+            }
+        }
+    }
+
+    [ContextMenu("Resume Day")]
+    public void ResumeDay()
+    {
+        if (!isDayActive)
+        {
+            Debug.LogWarning("День не активен, нельзя возобновить.");
+            return;
+        }
+        if (!isDayPaused)
+        {
+            Debug.LogWarning("День не на паузе.");
+            return;
+        }
+        isDayPaused = false;
+        Debug.Log($"День {dayCount} возобновлён.");
+
+        if (SpawnHandler.Instance != null)
+        {
+            SpawnHandler.Instance.ResumeSpawning();
+        }
+
+        foreach (var client in clientPool)
+        {
+            var customerMovement = client.GetComponent<CustomerMovement>();
+            if (customerMovement != null)
+            {
+                customerMovement.Resume();
+            }
+        }
+    }
+
+    private IEnumerator DayCycle()
+    {
+        float elapsedTime = 0f;
+        while (elapsedTime < maxDayDuration)
+        {
+            if (isDayPaused)
+            {
+                yield return null;
+                continue;
+            }
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        EndDay();
+        Debug.Log($"День {dayCount} завершён.");
+    }
+
     private void OnEmployeeAssignedHandler(ClientData client, Employee employee)
     {
         int clientLevel = (int)client.Data.clientType;
@@ -166,7 +275,6 @@ public class GameManager : MonoBehaviour
         if (employee != null)
         {
             employee.CheckSick(client.RequestedService, client.Data.isSick);
-
             string service = client.RequestedService;
             if (!employee.Skills.ContainsKey(service))
             {
@@ -176,7 +284,6 @@ public class GameManager : MonoBehaviour
             var currentSkill = employee.Skills[service];
             int newProgress = currentSkill.progress;
             int newLevel = currentSkill.level;
-
             if (newLevel < 10)
             {
                 newProgress += (int)progressPerService;
@@ -190,9 +297,13 @@ public class GameManager : MonoBehaviour
             {
                 newProgress = 100;
             }
-
             employee.Skills[service] = (newLevel, newProgress);
             Debug.Log($"Сотрудница {employee.name} навык {service} уровень {newLevel} прогрессия {newProgress}");
+            employee.UpdateStamina(1f);
+            if (employee.GetState() == Employee.EmployeeState.Servicing)
+            {
+                employee.SetState(Employee.EmployeeState.Available);
+            }
         }
         else
         {
@@ -212,10 +323,25 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator ServiceTimer(float time, CustomerMovement customer, ClientData client)
     {
-        yield return new WaitForSeconds(time);
+        float elapsed = 0f;
+        while (elapsed < time)
+        {
+            if (isDayPaused)
+            {
+                yield return null;
+                continue;
+            }
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
         customer.Visual.gameObject.SetActive(true);
         Debug.Log($"Клиент {customer.name} закончил услугу.");
-        onServiceCompleted.Invoke(client, client.SelectedEmployee);
+        if (client.SpecificEmployee == null)
+        {
+            Debug.LogWarning($"No employee assigned for client {client.name} at service completion.");
+            yield break;
+        }
+        onServiceCompleted.Invoke(client, client.SpecificEmployee);
         customer.ExitService();
     }
 
@@ -241,17 +367,22 @@ public class GameManager : MonoBehaviour
 
     public void EndDay()
     {
+        isDayActive = false;
+        isDayPaused = false;
+        if (dayCycleCoroutine != null)
+        {
+            StopCoroutine(dayCycleCoroutine);
+            dayCycleCoroutine = null;
+        }
         clientPool.Clear();
         clientsSpawnedToday = 0;
         dayCount++;
         difficultyLevel = Mathf.FloorToInt(dayCount / 5f) + 1;
-
         foreach (var employee in activeEmployees)
         {
             Debug.Log($"Обновление дня для сотрудницы {employee.name}, текущее состояние: {employee.GetState()}");
             employee.EndDayUpdate();
         }
-
         UpdateExtraVisitors();
         onStateChange.Invoke();
     }
@@ -278,9 +409,14 @@ public class GameManager : MonoBehaviour
         Employee employee = employeeGO.AddComponent<Employee>();
         employee.SetData(employeeData);
         activeEmployees.Add(employee);
+        if (employee.GetState() == Employee.EmployeeState.Sick || employee.GetState() == Employee.EmployeeState.Healing)
+        {
+            sickEmployees.Add(employee);
+            Debug.Log($"Сотрудница {employee.name} добавлена в sickEmployees.");
+        }
         if (EmployeeManager.Instance != null)
         {
-            EmployeeManager.Instance.AddEmployeeData(employeeData);
+            EmployeeManager.Instance.AddEmployeeData(employee, employeeData);
         }
         Debug.Log($"Сотрудница {employeeData.name} добавлена.");
         onEmployeeListChanged.Invoke();
@@ -291,16 +427,16 @@ public class GameManager : MonoBehaviour
         foreach (var client in clientPool)
         {
             client.availableEmployees.Clear();
-            client.availableEmployees.AddRange(activeEmployees);
+            client.availableEmployees.AddRange(EmployeeManager.Instance.AvailableEmployees);
         }
-        Debug.Log($"Синхронизировано: {clientPool.Count} клиентов, {activeEmployees.Count} сотрудниц.");
+        Debug.Log($"Синхронизировано: {clientPool.Count} клиентов, {EmployeeManager.Instance.AvailableEmployees.Count} сотрудниц.");
     }
 
     private void LogGameState()
     {
         int expectedClients = TotalClients;
         Debug.Log($"День: {dayCount}, Золото: {currentGold}, Популярность: {currentPopularity}, Ожидаемые клиенты: {expectedClients}, Сложность: {difficultyLevel}");
-        Debug.Log($"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}");
+        Debug.Log($"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}, Больные сотрудницы: {EmployeeManager.Instance.SickEmployees.Count}, Доступные: {EmployeeManager.Instance.AvailableEmployees.Count}, Уставшие: {EmployeeManager.Instance.TiredEmployees.Count}, Обслуживают: {EmployeeManager.Instance.ServicingEmployees.Count}");
     }
 
     [ContextMenu("Save Progress")]
@@ -333,7 +469,6 @@ public class GameManager : MonoBehaviour
         currentPopularity = PlayerPrefs.GetFloat("CurrentPopularity", initialPopularity);
         dayCount = PlayerPrefs.GetInt("DayCount", 1);
         difficultyLevel = PlayerPrefs.GetInt("DifficultyLevel", 1);
-
         string employeeNames = PlayerPrefs.GetString("ActiveEmployees", "");
         if (!string.IsNullOrEmpty(employeeNames))
         {
@@ -356,7 +491,6 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
-
         onStateChange.Invoke();
     }
 
@@ -368,7 +502,7 @@ public class GameManager : MonoBehaviour
             Debug.LogError("Нет активных сотрудниц для теста лечения.");
             return;
         }
-        Employee sickEmployee = activeEmployees.Find(e => e.GetState() == Employee.EmployeeState.Sick);
+        Employee sickEmployee = sickEmployees.Find(e => e.GetState() == Employee.EmployeeState.Sick);
         if (sickEmployee == null)
         {
             Debug.LogError("HealTestEmployee: Нет больных сотрудниц для лечения.");

@@ -4,162 +4,112 @@ using UnityEngine;
 public class ClientData : MonoBehaviour
 {
     [SerializeField] private ClientDataSO data;
-    [SerializeField] public List<Employee> availableEmployees;
-    private string requestedService;
-    private Dictionary<string, string> preferences = new Dictionary<string, string>();
-    private Employee specificEmployee;
-    private Employee selectedEmployee;
-
-    private CustomerMovement customerMovement;
-
+    public List<Employee> availableEmployees = new List<Employee>();
+    public string RequestedService { get; private set; }
+    public string bodyType;
+    public char breastSize;
+    public string race;
+    public Employee SpecificEmployee;
     public ClientDataSO Data => data;
-    public string RequestedService => requestedService;
-    public Employee SpecificEmployee => specificEmployee;
-    public Employee SelectedEmployee => selectedEmployee;
-    public Dictionary<string, string> Preferences => preferences;
 
     private void Awake()
     {
-        customerMovement = GetComponent<CustomerMovement>();
-        if (customerMovement == null)
-        {
-            Debug.LogError("ClientData: CustomerMovement не найден.");
-            enabled = false;
-            return;
-        }
         if (data == null)
         {
-            Debug.LogError("ClientData: ClientDataSO не назначен.");
-            enabled = false;
+            Debug.LogError($"ClientDataSO is not assigned on {gameObject.name}.");
             return;
         }
-        customerMovement.onEnterWaiting.AddListener(GenerateRequest);
+        InitializeClientPreferences();
     }
 
-    private void GenerateRequest()
+    private void InitializeClientPreferences()
     {
         if (EmployeeManager.Instance == null)
         {
-            Debug.LogError("EmployeeManager не найден.");
+            Debug.LogError($"EmployeeManager.Instance is null for client {gameObject.name}.");
             return;
         }
 
-        requestedService = EmployeeManager.Instance.GetRandomService();
-
-        preferences.Clear();
-        specificEmployee = null;
-        selectedEmployee = null;
-
-        if (data.clientType == GameManager.ClientType.Type2)
+        RequestedService = EmployeeManager.Instance.GetRandomService();
+        if (string.IsNullOrEmpty(RequestedService))
         {
-            string randomBodyType = EmployeeManager.Instance.GetRandomBodyType();
-            if (!string.IsNullOrEmpty(randomBodyType))
-            {
-                preferences.Add("bodyType", randomBodyType);
-                char randomBreastSize = EmployeeManager.Instance.GetRandomBreastSize(bodyType: randomBodyType);
-                if (randomBreastSize != ' ')
+            Debug.LogError($"Failed to get RequestedService for client {gameObject.name}.");
+            return;
+        }
+
+        var employees = EmployeeManager.Instance.AvailableEmployees;
+        if (employees.Count == 0)
+        {
+            Debug.LogWarning($"No available employees for client {gameObject.name}. Using default preferences.");
+            bodyType = "";
+            breastSize = '\0';
+            race = "";
+            SpecificEmployee = null;
+            return;
+        }
+
+        switch (data.clientType)
+        {
+            case GameManager.ClientType.Type1:
+                bodyType = "";
+                breastSize = '\0';
+                race = "";
+                SpecificEmployee = null;
+                break;
+            case GameManager.ClientType.Type2:
+                var bodyTypes = new List<string>();
+                var breastSizes = new List<char>();
+                foreach (var employee in employees)
                 {
-                    preferences.Add("breastSize", randomBreastSize.ToString());
+                    bodyTypes.AddRange(employee.Data.BodyTypes);
+                    breastSizes.Add(employee.Data.BreastSize);
                 }
-            }
-        }
-        else if (data.clientType == GameManager.ClientType.Type3)
-        {
-            string randomRace = EmployeeManager.Instance.GetRandomRace();
-            if (!string.IsNullOrEmpty(randomRace))
-            {
-                preferences.Add("race", randomRace);
-            }
-        }
-        else if (data.clientType == GameManager.ClientType.Type4)
-        {
-            specificEmployee = EmployeeManager.Instance.GetRandomEmployee();
-            selectedEmployee = specificEmployee;
-        }
-
-        Debug.Log($"Запрос клиента {name} сгенерирован в Waiting (тип {data.clientType}): Услуга - {requestedService}, Preferences - {string.Join(", ", preferences)}, Specific: {(specificEmployee != null ? specificEmployee.name : "None")}");
-    }
-
-    public bool IsMatch(Employee employee)
-    {
-        Debug.Log($"Проверяемые характеристики клиента {name} (тип {data.clientType}): Услуга - {requestedService}, Preferences - {string.Join(", ", preferences)}, Specific - {(specificEmployee != null ? specificEmployee.name : "None")}");
-        Debug.Log($"Сотрудница {employee.name}: Услуга - {(employee.BaseSkills.Contains(requestedService) ? "есть" : "нет")}, Раса - {employee.Race}, Типы тела - {string.Join(", ", employee.BodyTypes)}, Размер груди - {employee.BreastSize}");
-
-        if (!employee.BaseSkills.Contains(requestedService))
-        {
-            Debug.Log($"Несовпадение: Услуга {requestedService} отсутствует в навыках сотрудницы {employee.name}.");
-            return false;
+                bodyType = bodyTypes.Count > 0 ? bodyTypes[Random.Range(0, bodyTypes.Count)] : "";
+                breastSize = breastSizes.Count > 0 ? breastSizes[Random.Range(0, breastSizes.Count)] : '\0';
+                race = "";
+                SpecificEmployee = null;
+                break;
+            case GameManager.ClientType.Type3:
+                var races = new List<string>();
+                foreach (var employee in employees)
+                {
+                    races.Add(employee.Data.Race);
+                }
+                bodyType = "";
+                breastSize = '\0';
+                race = races.Count > 0 ? races[Random.Range(0, races.Count)] : "";
+                SpecificEmployee = null;
+                break;
+            case GameManager.ClientType.Type4:
+                bodyType = "";
+                breastSize = '\0';
+                race = "";
+                SpecificEmployee = employees[Random.Range(0, employees.Count)];
+                break;
         }
 
-        if (!employee.Data.servicePrices.ContainsKey(requestedService) || employee.Data.servicePrices[requestedService] > data.totalGold)
-        {
-            Debug.Log($"Несовпадение: Стоимость услуги {requestedService} ({employee.Data.servicePrices[requestedService]}) превышает золото клиента ({data.totalGold}) или услуга отсутствует в servicePrices.");
-            return false;
-        }
-
-        if (preferences.TryGetValue("race", out string reqRace) && employee.Race != reqRace)
-        {
-            Debug.Log($"Несовпадение: Раса не совпадает (требуется {reqRace}, найдено {employee.Race}).");
-            return false;
-        }
-
-        if (preferences.TryGetValue("bodyType", out string reqBody) && !employee.BodyTypes.Contains(reqBody))
-        {
-            Debug.Log($"Несовпадение: Тип тела не совпадает (требуется {reqBody}, найдено {string.Join(", ", employee.BodyTypes)}).");
-            return false;
-        }
-
-        if (preferences.TryGetValue("breastSize", out string reqBreast) && employee.BreastSize.ToString() != reqBreast)
-        {
-            Debug.Log($"Несовпадение: Размер груди не совпадает (требуется {reqBreast}, найдено {employee.BreastSize}).");
-            return false;
-        }
-
-        if (specificEmployee != null && employee != specificEmployee)
-        {
-            Debug.Log($"Несовпадение: Требуется конкретная сотрудница {specificEmployee.name}, выбрана {employee.name}.");
-            return false;
-        }
-
-        Debug.Log($"Сотрудница {employee.name} соответствует запросу клиента {name}.");
-        return true;
+        Debug.Log($"Client {gameObject.name} initialized: Type={data.clientType}, RequestedService={RequestedService}, bodyType={bodyType}, breastSize={breastSize}, race={race}, SpecificEmployee={SpecificEmployee?.name ?? "null"}");
     }
 
     [ContextMenu("Назначить первую сотрудницу")]
     public void AssignFirstEmployee()
     {
-        if (availableEmployees.Count > 0)
+        if (availableEmployees.Count == 0)
         {
-            SelectEmployee(availableEmployees[0]);
+            Debug.LogError($"Нет доступных сотрудниц для клиента {gameObject.name}.");
+            return;
         }
-        else
+        var employee = availableEmployees[0];
+        var customerMovement = GetComponent<CustomerMovement>();
+        if (customerMovement == null)
         {
-            Debug.LogError($"Нет доступных сотрудниц для клиента {name}.");
-            customerMovement.ForceExit();
+            Debug.LogError($"CustomerMovement component missing on client {gameObject.name}.");
+            return;
         }
-    }
-
-    public void SelectEmployee(Employee employee)
-    {
-        var state = customerMovement.CurrentState;
-        if (state == CustomerMovement.CustomerState.Waiting || state == CustomerMovement.CustomerState.OnChair)
-        {
-            if (IsMatch(employee))
-            {
-                selectedEmployee = employee;
-                Debug.Log($"Сотрудница {employee.name} выбрана для клиента {name}. SelectedEmployee: {(selectedEmployee != null ? selectedEmployee.name : "null")}");
-                GameManager.Instance.onEmployeeAssigned.Invoke(this, employee);
-                customerMovement.SendToService();
-            }
-            else
-            {
-                Debug.Log($"Запрос не совпадает, клиент {name} уходит.");
-                customerMovement.ForceExit();
-            }
-        }
-        else
-        {
-            Debug.LogError($"Нельзя выбрать сотрудницу: Недопустимое состояние {state}.");
-        }
+        SpecificEmployee = employee;
+        GameManager.Instance.onEmployeeAssigned.Invoke(this, employee);
+        Debug.Log($"SelectEmployee: State = {customerMovement.CurrentState}, Calling SendToService for client {gameObject.name}.");
+        customerMovement.SendToService();
+        Debug.Log($"Сотрудница {employee.name} назначена для клиента {gameObject.name}.");
     }
 }

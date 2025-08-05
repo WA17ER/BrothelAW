@@ -42,6 +42,27 @@ public class Employee : MonoBehaviour
     public void SetState(EmployeeState newState)
     {
         state = newState;
+        if (EmployeeManager.Instance != null)
+        {
+            EmployeeManager.Instance.MoveEmployeeToList(this, newState);
+        }
+        if (GameManager.Instance != null)
+        {
+            if (newState == EmployeeState.Sick || newState == EmployeeState.Healing)
+            {
+                if (!GameManager.Instance.SickEmployees.Contains(this))
+                {
+                    GameManager.Instance.SickEmployees.Add(this);
+                    Debug.Log($"Сотрудница {name} добавлена в GameManager.sickEmployees.");
+                }
+            }
+            else
+            {
+                GameManager.Instance.SickEmployees.Remove(this);
+                Debug.Log($"Сотрудница {name} удалена из GameManager.sickEmployees.");
+            }
+        }
+        GameManager.Instance.onEmployeeListChanged.Invoke();
         Debug.Log($"Состояние сотрудницы {name} изменено на {state}.");
     }
 
@@ -61,14 +82,15 @@ public class Employee : MonoBehaviour
             Debug.Log($"Сотрудница {name} не заболела: клиент здоров.");
             return;
         }
-        float baseSickChance = 0.1f; // Базовый шанс болезни 10%
-        float chance = baseSickChance * (1 - Data.sickResistance / 100); // Учитываем сопротивление
-        chance = Mathf.Clamp(chance, 0f, 1f); // Ограничиваем до 0-100%
-        Debug.Log($"Шанс болезни для {name} при услуге {service}: {chance * 100:F2}%");
-        if (Random.value < chance)
+        float randomValue = Random.value * 100; // Рандомное число 0-100
+        if (randomValue > Data.sickResistance)
         {
             SetState(EmployeeState.Sick);
-            Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}. Шанс болезни: {chance * 100:F2}%.");
+            Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}. Шанс не заболеть: {Data.sickResistance}%");
+        }
+        else
+        {
+            Debug.Log($"Сотрудница {name} не заболела при оказании услуги {service}. Шанс не заболеть: {Data.sickResistance}%");
         }
     }
 

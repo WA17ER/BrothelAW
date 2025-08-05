@@ -28,4 +28,4 @@ MonoBehaviour:
   - "\u0421\u0442\u043E\u044F"
   hireCost: 0
   hirePopularity: 0
-  chanceSickModifier: 100
+  sickResistance: 0

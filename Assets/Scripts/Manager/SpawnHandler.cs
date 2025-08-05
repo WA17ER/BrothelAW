@@ -4,17 +4,52 @@ using UnityEngine;
 
 public class SpawnHandler : MonoBehaviour
 {
+    public static SpawnHandler Instance { get; private set; }
+
     [SerializeField] private GameManager gameManager;
     [SerializeField] private Transform spawnPoint;
+    private Coroutine spawnCoroutine;
+    private bool isPaused = false;
 
-    private void Start()
+    private void Awake()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
         if (gameManager == null || spawnPoint == null)
         {
             Debug.LogError("SpawnHandler: GameManager или spawnPoint не назначены.");
-            return;
+            enabled = false;
         }
-        StartCoroutine(SpawnClients());
+    }
+
+    public void StartSpawning()
+    {
+        if (spawnCoroutine != null)
+        {
+            StopCoroutine(spawnCoroutine);
+        }
+        isPaused = false;
+        spawnCoroutine = StartCoroutine(SpawnClients());
+    }
+
+    public void PauseSpawning()
+    {
+        isPaused = true;
+        Debug.Log("Спавн клиентов поставлен на паузу.");
+    }
+
+    public void ResumeSpawning()
+    {
+        isPaused = false;
+        Debug.Log("Спавн клиентов возобновлён.");
     }
 
     private IEnumerator SpawnClients()
@@ -23,11 +58,16 @@ public class SpawnHandler : MonoBehaviour
         int baseClients = gameManager.BaseVisitors;
         Dictionary<int, int> extraVisitors = gameManager.ExtraVisitors;
         int spawned = 0;
-        float spawnInterval = gameManager.MaxDayDuration / Mathf.Max(totalClients, 1); // Деление дня на общее число клиентов
+        float spawnInterval = gameManager.MaxDayDuration / Mathf.Max(totalClients, 1);
 
         // Спавн базовых клиентов (Type1)
         for (int i = 0; i < baseClients && spawned < totalClients; i++)
         {
+            if (isPaused)
+            {
+                yield return null;
+                continue;
+            }
             List<GameObject> type1Prefabs = gameManager.ClientVisualModels[1];
             if (type1Prefabs.Count == 0)
             {
@@ -49,7 +89,17 @@ public class SpawnHandler : MonoBehaviour
             gameManager.ClientsSpawnedToday++;
             spawned++;
             float delay = Random.Range(gameManager.MinSpawnDelay, spawnInterval);
-            yield return new WaitForSeconds(delay);
+            float elapsed = 0f;
+            while (elapsed < delay)
+            {
+                if (isPaused)
+                {
+                    yield return null;
+                    continue;
+                }
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
         }
 
         // Спавн дополнительных клиентов (Type2–Type4)
@@ -65,6 +115,11 @@ public class SpawnHandler : MonoBehaviour
             }
             for (int i = 0; i < count && spawned < totalClients; i++)
             {
+                if (isPaused)
+                {
+                    yield return null;
+                    continue;
+                }
                 int index = Random.Range(0, extraPrefabs.Count);
                 GameObject clientGO = Instantiate(extraPrefabs[index], spawnPoint.position, Quaternion.identity);
                 ClientData client = clientGO.GetComponent<ClientData>();
@@ -80,7 +135,17 @@ public class SpawnHandler : MonoBehaviour
                 gameManager.ClientsSpawnedToday++;
                 spawned++;
                 float delay = Random.Range(gameManager.MinSpawnDelay, spawnInterval);
-                yield return new WaitForSeconds(delay);
+                float elapsed = 0f;
+                while (elapsed < delay)
+                {
+                    if (isPaused)
+                    {
+                        yield return null;
+                        continue;
+                    }
+                    elapsed += Time.deltaTime;
+                    yield return null;
+                }
             }
         }
 

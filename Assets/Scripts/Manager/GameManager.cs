@@ -64,6 +64,7 @@ public class GameManager : MonoBehaviour
     public List<Employee> SickEmployees => sickEmployees;
     public int DifficultyLevel => difficultyLevel;
     public bool IsDayPaused => isDayPaused;
+    public float ProgressPerService => progressPerService;
 
     private void Awake()
     {
@@ -161,6 +162,10 @@ public class GameManager : MonoBehaviour
         clientPool.Clear();
         UpdateExtraVisitors();
         Debug.Log($"День {dayCount} начался.");
+        if (EmployeeManager.Instance != null)
+        {
+            EmployeeManager.Instance.AddEmployees(activeEmployees.Where(e => e.GetState() == Employee.EmployeeState.Available).ToList());
+        }
         if (SpawnHandler.Instance != null)
         {
             SpawnHandler.Instance.StartSpawning();
@@ -253,17 +258,8 @@ public class GameManager : MonoBehaviour
 
     private void OnEmployeeAssignedHandler(ClientData client, Employee employee)
     {
-        int clientLevel = (int)client.Data.clientType;
-        string service = client.RequestedService;
-        if (!employee.Data.servicePrices.ContainsKey(service))
-        {
-            Debug.LogError($"OnEmployeeAssigned: Услуга {service} не найдена в servicePrices сотрудницы {employee.name}.");
-            return;
-        }
-        int skillLevel = employee.Skills[service].level;
-        float reward = clientLevel * (skillLevel + 1) * employee.Data.servicePrices[service];
+        float reward = EmployeeManager.Instance.AssignEmployee(client, employee);
         currentGold += reward;
-        employee.SetState(Employee.EmployeeState.Servicing);
         Debug.Log($"Золото начислено: +{reward} для клиента {client.name} с сотрудницей {employee.name}.");
         onStateChange.Invoke();
     }
@@ -274,36 +270,7 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Популярность начислена: +5 для клиента {client.name} после обслуживания.");
         if (employee != null)
         {
-            employee.CheckSick(client.RequestedService, client.Data.isSick);
-            string service = client.RequestedService;
-            if (!employee.Skills.ContainsKey(service))
-            {
-                Debug.LogError($"OnServiceCompleted: Услуга {service} не найдена в навыках сотрудницы {employee.name}.");
-                return;
-            }
-            var currentSkill = employee.Skills[service];
-            int newProgress = currentSkill.progress;
-            int newLevel = currentSkill.level;
-            if (newLevel < 10)
-            {
-                newProgress += (int)progressPerService;
-                if (newProgress >= 100)
-                {
-                    newLevel++;
-                    newProgress = 0;
-                }
-            }
-            else
-            {
-                newProgress = 100;
-            }
-            employee.Skills[service] = (newLevel, newProgress);
-            Debug.Log($"Сотрудница {employee.name} навык {service} уровень {newLevel} прогрессия {newProgress}");
-            employee.UpdateStamina(1f);
-            if (employee.GetState() == Employee.EmployeeState.Servicing)
-            {
-                employee.SetState(Employee.EmployeeState.Available);
-            }
+            EmployeeManager.Instance.CompleteService(employee, client.RequestedService, client.Data.isSick);
         }
         else
         {
@@ -318,7 +285,7 @@ public class GameManager : MonoBehaviour
         ClientData client = customer.GetComponent<ClientData>();
         Debug.Log($"Клиент {customer.name} начал услугу.");
         customer.Visual.gameObject.SetActive(false);
-        StartCoroutine(ServiceTimer(5f, customer, client));
+        StartCoroutine(ServiceTimer(15f, customer, client));
     }
 
     private IEnumerator ServiceTimer(float time, CustomerMovement customer, ClientData client)
@@ -339,7 +306,6 @@ public class GameManager : MonoBehaviour
         if (client.SpecificEmployee == null)
         {
             Debug.LogWarning($"No employee assigned for client {client.name} at service completion.");
-            yield break;
         }
         onServiceCompleted.Invoke(client, client.SpecificEmployee);
         customer.ExitService();
@@ -356,6 +322,7 @@ public class GameManager : MonoBehaviour
         {
             currentGold -= healingCost;
             employee.SetState(Employee.EmployeeState.Healing);
+            sickEmployees.Add(employee);
             Debug.Log($"Сотрудница {employee.name} отправлена на лечение за {healingCost} золота.");
             onStateChange.Invoke();
         }
@@ -378,10 +345,11 @@ public class GameManager : MonoBehaviour
         clientsSpawnedToday = 0;
         dayCount++;
         difficultyLevel = Mathf.FloorToInt(dayCount / 5f) + 1;
-        foreach (var employee in activeEmployees)
+        if (EmployeeManager.Instance != null)
         {
-            Debug.Log($"Обновление дня для сотрудницы {employee.name}, текущее состояние: {employee.GetState()}");
-            employee.EndDayUpdate();
+            EmployeeManager.Instance.EndDayUpdate();
+            activeEmployees = EmployeeManager.Instance.GetAllEmployees();
+            sickEmployees = EmployeeManager.Instance.SickEmployees;
         }
         UpdateExtraVisitors();
         onStateChange.Invoke();
@@ -414,10 +382,6 @@ public class GameManager : MonoBehaviour
             sickEmployees.Add(employee);
             Debug.Log($"Сотрудница {employee.name} добавлена в sickEmployees.");
         }
-        if (EmployeeManager.Instance != null)
-        {
-            EmployeeManager.Instance.AddEmployeeData(employee, employeeData);
-        }
         Debug.Log($"Сотрудница {employeeData.name} добавлена.");
         onEmployeeListChanged.Invoke();
     }
@@ -436,7 +400,7 @@ public class GameManager : MonoBehaviour
     {
         int expectedClients = TotalClients;
         Debug.Log($"День: {dayCount}, Золото: {currentGold}, Популярность: {currentPopularity}, Ожидаемые клиенты: {expectedClients}, Сложность: {difficultyLevel}");
-        Debug.Log($"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}, Больные сотрудницы: {EmployeeManager.Instance.SickEmployees.Count}, Доступные: {EmployeeManager.Instance.AvailableEmployees.Count}, Уставшие: {EmployeeManager.Instance.TiredEmployees.Count}, Обслуживают: {EmployeeManager.Instance.ServicingEmployees.Count}");
+        Debug.Log($"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}, Больные сотрудницы: {EmployeeManager.Instance.SickEmployees.Count}");
     }
 
     [ContextMenu("Save Progress")]

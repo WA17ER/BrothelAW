@@ -54,6 +54,9 @@ public class SpawnHandler : MonoBehaviour
 
     private IEnumerator SpawnClients()
     {
+        // Задержка перед спавном первого клиента (10-20 секунд)
+        yield return new WaitForSeconds(Random.Range(10f, 20f));
+
         int totalClients = gameManager.TotalClients;
         int baseClients = gameManager.BaseVisitors;
         Dictionary<int, int> extraVisitors = gameManager.ExtraVisitors;

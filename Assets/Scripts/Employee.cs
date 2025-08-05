@@ -46,23 +46,6 @@ public class Employee : MonoBehaviour
         {
             EmployeeManager.Instance.MoveEmployeeToList(this, newState);
         }
-        if (GameManager.Instance != null)
-        {
-            if (newState == EmployeeState.Sick || newState == EmployeeState.Healing)
-            {
-                if (!GameManager.Instance.SickEmployees.Contains(this))
-                {
-                    GameManager.Instance.SickEmployees.Add(this);
-                    Debug.Log($"Сотрудница {name} добавлена в GameManager.sickEmployees.");
-                }
-            }
-            else
-            {
-                GameManager.Instance.SickEmployees.Remove(this);
-                Debug.Log($"Сотрудница {name} удалена из GameManager.sickEmployees.");
-            }
-        }
-        GameManager.Instance.onEmployeeListChanged.Invoke();
         Debug.Log($"Состояние сотрудницы {name} изменено на {state}.");
     }
 
@@ -82,7 +65,7 @@ public class Employee : MonoBehaviour
             Debug.Log($"Сотрудница {name} не заболела: клиент здоров.");
             return;
         }
-        float randomValue = Random.value * 100; // Рандомное число 0-100
+        float randomValue = Random.value * 100;
         if (randomValue > Data.sickResistance)
         {
             SetState(EmployeeState.Sick);

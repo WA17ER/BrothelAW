@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using static CustomerMovement;
 
 public class ClientData : MonoBehaviour
 {
@@ -19,10 +20,9 @@ public class ClientData : MonoBehaviour
             Debug.LogError($"ClientDataSO is not assigned on {gameObject.name}.");
             return;
         }
-        InitializeClientPreferences();
     }
 
-    private void InitializeClientPreferences()
+    public void InitializeClientPreferences()
     {
         if (EmployeeManager.Instance == null)
         {
@@ -100,16 +100,29 @@ public class ClientData : MonoBehaviour
             return;
         }
         var employee = availableEmployees[0];
+        SelectEmployee(employee);
+    }
+
+    public void SelectEmployee(Employee employee)
+    {
         var customerMovement = GetComponent<CustomerMovement>();
         if (customerMovement == null)
         {
             Debug.LogError($"CustomerMovement component missing on client {gameObject.name}.");
             return;
         }
-        SpecificEmployee = employee;
-        GameManager.Instance.onEmployeeAssigned.Invoke(this, employee);
-        Debug.Log($"SelectEmployee: State = {customerMovement.CurrentState}, Calling SendToService for client {gameObject.name}.");
-        customerMovement.SendToService();
-        Debug.Log($"Сотрудница {employee.name} назначена для клиента {gameObject.name}.");
+        var state = customerMovement.CurrentState;
+        if (state == CustomerState.Waiting || state == CustomerState.OnChair)
+        {
+            SpecificEmployee = employee;
+            GameManager.Instance.onEmployeeAssigned.Invoke(this, employee);
+            Debug.Log($"SelectEmployee: State = {state}, Calling SendToService for client {gameObject.name}.");
+            customerMovement.SendToService();
+            Debug.Log($"Сотрудница {employee.name} назначена для клиента {gameObject.name}.");
+        }
+        else
+        {
+            Debug.LogError($"Нельзя выбрать сотрудницу: Недопустимое состояние {state} для клиента {gameObject.name}.");
+        }
     }
 }

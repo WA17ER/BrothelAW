@@ -316,6 +316,13 @@ public class CustomerMovement : MonoBehaviour
         if (newState == CustomerState.Waiting)
         {
             waitingCoroutine = StartCoroutine(WaitForDecision(10f));
+            if (clientRequest != null)
+            {
+                clientRequest.availableEmployees.Clear();
+                clientRequest.availableEmployees.AddRange(EmployeeManager.Instance.AvailableEmployees);
+                clientRequest.InitializeClientPreferences();
+                Debug.Log($"Client {name} updated availableEmployees: {clientRequest.availableEmployees.Count} employees.");
+            }
             onEnterWaiting?.Invoke();
         }
         Debug.Log($"Клиент {name} перешёл в состояние {currentState}.");

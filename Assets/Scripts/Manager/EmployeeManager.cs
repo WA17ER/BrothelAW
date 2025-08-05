@@ -32,18 +32,34 @@ public class EmployeeManager : MonoBehaviour
         }
     }
 
-    public void AddEmployeeData(Employee employee, EmployeeDataSO employeeData)
+    public void AddEmployees(List<Employee> employees)
     {
-        if (employee == null || employee.Data != employeeData)
+        availableEmployees.Clear();
+        sickEmployees.Clear();
+        servicingEmployees.Clear();
+        tiredEmployees.Clear();
+
+        foreach (var employee in employees)
         {
-            Debug.LogError($"EmployeeManager: Employee is null or does not match EmployeeDataSO {employeeData?.employeeName}.");
-            return;
+            if (employee == null)
+            {
+                Debug.LogError("AddEmployees: Получена null-сотрудница.");
+                continue;
+            }
+            MoveEmployeeToList(employee, employee.GetState());
+            Debug.Log($"Сотрудница {employee.name} добавлена в сцену, состояние: {employee.GetState()}.");
         }
-        if (!availableEmployees.Contains(employee))
-        {
-            availableEmployees.Add(employee);
-            Debug.Log($"Сотрудница {employeeData.employeeName} добавлена в availableEmployees.");
-        }
+        Debug.Log($"Добавлено {employees.Count} сотрудниц в EmployeeManager.");
+    }
+
+    public List<Employee> GetAllEmployees()
+    {
+        List<Employee> allEmployees = new List<Employee>();
+        allEmployees.AddRange(availableEmployees);
+        allEmployees.AddRange(sickEmployees);
+        allEmployees.AddRange(servicingEmployees);
+        allEmployees.AddRange(tiredEmployees);
+        return allEmployees;
     }
 
     public void MoveEmployeeToList(Employee employee, Employee.EmployeeState newState)
@@ -75,6 +91,78 @@ public class EmployeeManager : MonoBehaviour
                 sickEmployees.Add(employee);
                 Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees (Healing).");
                 break;
+        }
+        GameManager.Instance.onEmployeeListChanged.Invoke();
+    }
+
+    public float AssignEmployee(ClientData client, Employee employee)
+    {
+        if (employee == null)
+        {
+            Debug.LogError($"AssignEmployee: Employee null для клиента {client.name}.");
+            return 0f;
+        }
+        string service = client.RequestedService;
+        if (!employee.Data.servicePrices.ContainsKey(service))
+        {
+            Debug.LogError($"AssignEmployee: Услуга {service} не найдена в servicePrices сотрудницы {employee.name}.");
+            return 0f;
+        }
+        employee.SetState(Employee.EmployeeState.Servicing);
+        MoveEmployeeToList(employee, Employee.EmployeeState.Servicing);
+        int clientLevel = (int)client.Data.clientType;
+        int skillLevel = employee.Skills[service].level;
+        float reward = clientLevel * (skillLevel + 1) * employee.Data.servicePrices[service];
+        Debug.Log($"Сотрудница {employee.name} назначена для клиента {client.name}, награда: {reward}.");
+        GameManager.Instance.onEmployeeListChanged.Invoke();
+        return reward;
+    }
+
+    public void CompleteService(Employee employee, string service, bool clientIsSick)
+    {
+        if (employee == null)
+        {
+            Debug.LogError("CompleteService: Employee null.");
+            return;
+        }
+        if (!employee.Skills.ContainsKey(service))
+        {
+            Debug.LogError($"CompleteService: Услуга {service} не найдена в навыках сотрудницы {employee.name}.");
+            return;
+        }
+        employee.CheckSick(service, clientIsSick);
+        var currentSkill = employee.Skills[service];
+        int newProgress = currentSkill.progress + (int)GameManager.Instance.ProgressPerService;
+        int newLevel = currentSkill.level;
+        if (newLevel < 10)
+        {
+            if (newProgress >= 100)
+            {
+                newLevel++;
+                newProgress = 0;
+            }
+        }
+        else
+        {
+            newProgress = 100;
+        }
+        employee.Skills[service] = (newLevel, newProgress);
+        Debug.Log($"Сотрудница {employee.name} навык {service} уровень {newLevel} прогрессия {newProgress}");
+        employee.UpdateStamina(1f);
+        if (employee.GetState() == Employee.EmployeeState.Servicing)
+        {
+            employee.SetState(Employee.EmployeeState.Available);
+            MoveEmployeeToList(employee, Employee.EmployeeState.Available);
+        }
+    }
+
+    public void EndDayUpdate()
+    {
+        foreach (var employee in GetAllEmployees())
+        {
+            Debug.Log($"Обновление дня для сотрудницы {employee.name}, текущее состояние: {employee.GetState()}");
+            employee.EndDayUpdate();
+            MoveEmployeeToList(employee, employee.GetState());
         }
     }
 

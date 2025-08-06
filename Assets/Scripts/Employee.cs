@@ -1,37 +1,41 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class Employee : MonoBehaviour
 {
-    public EmployeeDataSO Data { get; private set; }
-    public string Race => Data.Race;
-    public List<string> BodyTypes => Data.BodyTypes;
-    public char BreastSize => Data.BreastSize;
-    public List<string> BaseSkills => Data.BaseSkills;
-    public Dictionary<string, (int level, int progress)> Skills { get; private set; }
-    public float StaminaCurrent { get; set; }
-    public float StaminaMax => 10f;
+    private EmployeeDataSO data;
+    private Dictionary<string, (int level, int progress)> skills = new Dictionary<string, (int, int)>();
     private EmployeeState state = EmployeeState.Available;
+    private float staminaCurrent;
+    private float staminaMax = 10f;
 
     public enum EmployeeState
     {
         Available,
+        Sick,
         Servicing,
         Tired,
-        Sick,
         Healing
     }
 
-    public void SetData(EmployeeDataSO data)
+    public string Race => data.Race;
+    public string BodyType => data.BodyType;
+    public char BreastSize => data.BreastSize;
+    public Dictionary<string, (int level, int progress)> Skills => skills;
+    public float StaminaCurrent { get => staminaCurrent; set => staminaCurrent = value; }
+    public float StaminaMax => staminaMax;
+    public EmployeeDataSO Data => data;
+
+    public void SetData(EmployeeDataSO employeeData)
     {
-        Data = data;
-        Skills = new Dictionary<string, (int level, int progress)>();
+        data = employeeData;
+        name = data.employeeName;
+        skills.Clear();
         foreach (var skill in data.BaseSkills)
         {
-            Skills[skill] = (0, 0);
+            skills[skill] = (0, 0);
         }
-        StaminaCurrent = StaminaMax;
+        staminaCurrent = staminaMax;
     }
 
     public EmployeeState GetState()
@@ -42,61 +46,41 @@ public class Employee : MonoBehaviour
     public void SetState(EmployeeState newState)
     {
         state = newState;
-        if (EmployeeManager.Instance != null)
-        {
-            EmployeeManager.Instance.MoveEmployeeToList(this, newState);
-        }
-        Debug.Log($"Состояние сотрудницы {name} изменено на {state}.");
     }
 
-    public void UpdateStamina(float delta)
+    public void UpdateStamina(float staminaCost)
     {
-        StaminaCurrent = Mathf.Clamp(StaminaCurrent - delta, 0, StaminaMax);
-        if (StaminaCurrent <= 0)
+        staminaCurrent = Mathf.Max(0, staminaCurrent - staminaCost);
+        if (staminaCurrent <= 0 && state != EmployeeState.Sick)
         {
             SetState(EmployeeState.Tired);
+            Debug.Log($"Сотрудница {name} устала, выносливость: {staminaCurrent}.");
         }
     }
 
     public void CheckSick(string service, bool clientIsSick)
     {
-        if (!clientIsSick)
-        {
-            Debug.Log($"Сотрудница {name} не заболела: клиент здоров.");
-            return;
-        }
-        float randomValue = Random.value * 100;
-        if (randomValue > Data.sickResistance)
+        if (clientIsSick && Random.value > data.sickResistance)
         {
             SetState(EmployeeState.Sick);
-            Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}. Шанс не заболеть: {Data.sickResistance}%");
-        }
-        else
-        {
-            Debug.Log($"Сотрудница {name} не заболела при оказании услуги {service}. Шанс не заболеть: {Data.sickResistance}%");
+            Debug.Log($"Сотрудница {name} заболела после обслуживания клиента.");
         }
     }
 
     public void EndDayUpdate()
     {
+        staminaCurrent = Mathf.Max(0, staminaCurrent - 0.5f);
+        if (staminaCurrent <= 0 && state != EmployeeState.Sick)
+        {
+            SetState(EmployeeState.Tired);
+        }
         if (state == EmployeeState.Healing)
         {
-            SetState(EmployeeState.Available);
-        }
-        if (state == EmployeeState.Tired)
-        {
-            StaminaCurrent = StaminaMax;
-            SetState(EmployeeState.Available);
-        }
-    }
-
-    [ContextMenu("Set Max Level")]
-    public void SetMaxLevel()
-    {
-        foreach (var skill in Skills.Keys.ToList())
-        {
-            Skills[skill] = (10, 100);
-            Debug.Log($"Сотрудница {name} навык {skill} установлен на уровень 10 прогрессия 100");
+            if (Random.value < 0.5f)
+            {
+                SetState(EmployeeState.Available);
+                Debug.Log($"Сотрудница {name} выздоровела.");
+            }
         }
     }
 }

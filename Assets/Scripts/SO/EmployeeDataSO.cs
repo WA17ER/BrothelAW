@@ -11,6 +11,18 @@ public class EmployeeDataSO : ScriptableObject
     public List<string> BaseSkills;
     public float hireCost;
     public float hirePopularity;
-    [Tooltip("Процентное увеличение базового шанса болезни (например, 10 для +10%)")]
-    public float chanceSickModifier = 10f; // По умолчанию +10% к базовому шансу
+    [Tooltip("Процентное снижение шанса болезни (0-100%)")]
+    public float sickResistance = 0f;
+    [Tooltip("Цены за услуги сотрудницы")]
+    public Dictionary<string, float> servicePrices = new Dictionary<string, float>
+    {
+        { "Дрочка", 50f },
+        { "Миньет", 60f },
+        { "Дрочка Сиськами", 70f },
+        { "Миссионерская", 80f },
+        { "Наездница", 90f },
+        { "Амазонка", 70f },
+        { "Раком", 50f },
+        { "Стоя", 80f }
+    };
 }

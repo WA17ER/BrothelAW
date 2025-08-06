@@ -42,6 +42,10 @@ public class Employee : MonoBehaviour
     public void SetState(EmployeeState newState)
     {
         state = newState;
+        if (EmployeeManager.Instance != null)
+        {
+            EmployeeManager.Instance.MoveEmployeeToList(this, newState);
+        }
         Debug.Log($"Состояние сотрудницы {name} изменено на {state}.");
     }
 
@@ -54,16 +58,22 @@ public class Employee : MonoBehaviour
         }
     }
 
-    public void CheckSick(string service)
+    public void CheckSick(string service, bool clientIsSick)
     {
-        float baseSickChance = 0.1f; // Базовый шанс болезни 10%
-        float chance = baseSickChance * (1 + Data.chanceSickModifier / 100); // Учитываем модификатор
-        chance = Mathf.Clamp(chance, 0f, 1f); // Ограничиваем до 0-100%
-        Debug.Log($"Шанс болезни для {name} при услуге {service}: {chance * 100:F2}%");
-        if (Random.value < chance)
+        if (!clientIsSick)
+        {
+            Debug.Log($"Сотрудница {name} не заболела: клиент здоров.");
+            return;
+        }
+        float randomValue = Random.value * 100;
+        if (randomValue > Data.sickResistance)
         {
             SetState(EmployeeState.Sick);
-            Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}. Шанс болезни: {chance * 100:F2}%.");
+            Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}. Шанс не заболеть: {Data.sickResistance}%");
+        }
+        else
+        {
+            Debug.Log($"Сотрудница {name} не заболела при оказании услуги {service}. Шанс не заболеть: {Data.sickResistance}%");
         }
     }
 

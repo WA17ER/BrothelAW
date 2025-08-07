@@ -1218,12 +1218,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13b274ed3d4b02840a39a362c737a882, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseVisitors: 3
+  baseVisitors: 5
   spawnPoint: {fileID: 746849333}
   minSpawnDelay: 10
   maxDayDuration: 30
   initialGold: 1000
-  initialPopularity: 100
+  initialPopularity: 0
   clientType1Prefabs:
   - {fileID: 5459388358296003657, guid: ec207ddd09f1d6b42acc0182e069f7fd, type: 3}
   - {fileID: 5459388358296003657, guid: 616fa2e573bfbbd43a8976f516862119, type: 3}

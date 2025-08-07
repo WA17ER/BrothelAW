@@ -8,9 +8,9 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [SerializeField] private int baseVisitors = 10;
+    [SerializeField] private int baseVisitors = 3;
     [SerializeField] private Transform spawnPoint;
-    [SerializeField] private int minSpawnDelay = 7;
+    [SerializeField] private int minSpawnDelay = 1;
     [SerializeField] private float maxDayDuration = 300f;
     [SerializeField] private float initialGold = 1000f;
     [SerializeField] private float initialPopularity = 100f;
@@ -54,7 +54,7 @@ public class GameManager : MonoBehaviour
     public int MinSpawnDelay => minSpawnDelay;
     public float MaxDayDuration => maxDayDuration;
     public Dictionary<int, int> ExtraVisitors => extraVisitors;
-    public int TotalClients => Mathf.Min(baseVisitors + extraVisitors.Values.Sum(), maxClientsPerDay);
+    public int TotalClients => Mathf.Min(baseVisitors + extraVisitors.Values.Sum(), MaxClientsPerDay);
     public List<ClientData> ClientPool => clientPool;
     public int ClientsSpawnedToday { get => clientsSpawnedToday; set { clientsSpawnedToday = value; onStateChange.Invoke(); } }
     public Dictionary<int, List<GameObject>> ClientVisualModels => clientVisualModels;
@@ -63,6 +63,7 @@ public class GameManager : MonoBehaviour
     public bool IsDayPaused => isDayPaused;
     public float ProgressPerService => progressPerService;
     public Transform SpawnPoint => spawnPoint;
+    public int MaxClientsPerDay => maxClientsPerDay;
 
     private void Awake()
     {
@@ -86,6 +87,11 @@ public class GameManager : MonoBehaviour
             { 3, clientType3Prefabs },
             { 4, clientType4Prefabs }
         };
+
+        if (SpawnHandler.Instance != null)
+        {
+            SpawnHandler.Instance.Initialize(clientType1Prefabs, clientType2Prefabs, clientType3Prefabs, clientType4Prefabs);
+        }
 
         foreach (var employeeData in initialEmployees)
         {
@@ -115,7 +121,8 @@ public class GameManager : MonoBehaviour
     private void UpdateExtraVisitors()
     {
         extraVisitors.Clear();
-        int remainingClients = maxClientsPerDay - baseVisitors;
+        extraVisitors[1] = baseVisitors;
+        int remainingClients = MaxClientsPerDay - baseVisitors;
         if (remainingClients <= 0) return;
 
         if (currentPopularity >= 500f)
@@ -133,9 +140,9 @@ public class GameManager : MonoBehaviour
             extraVisitors[4] = Mathf.Min(1, remainingClients);
         }
 
-        if (baseVisitors + extraVisitors.Values.Sum() > maxClientsPerDay)
+        if (baseVisitors + extraVisitors.Values.Sum() > MaxClientsPerDay)
         {
-            Debug.Log($"Лимит клиентов применён: {baseVisitors + extraVisitors.Values.Sum()} ограничено до {maxClientsPerDay}.");
+            Debug.Log($"Лимит клиентов применён: {baseVisitors + extraVisitors.Values.Sum()} ограничено до {MaxClientsPerDay}.");
         }
     }
 
@@ -362,8 +369,7 @@ public class GameManager : MonoBehaviour
 
     private void LogGameState()
     {
-        int expectedClients = TotalClients;
-        Debug.Log($"День: {dayCount}, Золото: {currentGold}, Популярность: {currentPopularity}, Ожидаемые клиенты: {expectedClients}, Сложность: {difficultyLevel}");
+        Debug.Log($"День: {dayCount}, Золото: {currentGold}, Популярность: {currentPopularity}, Сложность: {difficultyLevel}");
         Debug.Log($"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}, Больные сотрудницы: {EmployeeManager.Instance.SickEmployees.Count}");
     }
 

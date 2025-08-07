@@ -97,13 +97,14 @@ public class EmployeeManager : MonoBehaviour
             MoveEmployeeToList(employee, employee.GetState());
             Debug.Log($"Сотрудница {employee.name} добавлена в сцену, состояние: {employee.GetState()}.");
         }
-        Debug.Log($"Добавлено {availableEmployees.Count} сотрудниц в EmployeeManager (доступных и больных).");
+        Debug.Log($"Добавлено {employees.Count} сотрудниц в EmployeeManager.");
     }
 
     public List<Employee> GetAllEmployees()
     {
         List<Employee> allEmployees = new List<Employee>();
         allEmployees.AddRange(availableEmployees);
+        allEmployees.AddRange(sickEmployees);
         allEmployees.AddRange(servicingEmployees);
         allEmployees.AddRange(tiredEmployees);
         return allEmployees;
@@ -123,9 +124,8 @@ public class EmployeeManager : MonoBehaviour
                 Debug.Log($"Сотрудница {employee.name} перемещена в availableEmployees.");
                 break;
             case Employee.EmployeeState.Sick:
-                availableEmployees.Add(employee); // Больные сотрудницы остаются доступными
                 sickEmployees.Add(employee);
-                Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees и availableEmployees.");
+                Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees.");
                 break;
             case Employee.EmployeeState.Servicing:
                 servicingEmployees.Add(employee);
@@ -190,16 +190,6 @@ public class EmployeeManager : MonoBehaviour
             if (breastModifier == 0 && employee.BreastSize != '\0')
                 Debug.LogWarning($"CalculateServiceCost: breastSizeModifier не найден для {employee.BreastSize}, использован 0.");
         }
-
-        // Добавление надбавок за предпочтения клиента
-        if (!string.IsNullOrEmpty(client.bodyType))
-            reward += 35;
-        if (client.breastSize != '\0')
-            reward += 20;
-        if (!string.IsNullOrEmpty(client.race))
-            reward += 50;
-        if (client.SpecificEmployee != null)
-            reward += 100;
 
         return reward;
     }

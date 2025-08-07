@@ -15,7 +15,7 @@ MonoBehaviour:
   employeeName: "\u0410\u044F\u043C\u044D"
   Race: "\u041E\u043D\u0438"
   BodyType: "\u0412\u0435\u043B\u0438\u043A\u0430\u043D"
-  BreastSize: 1057
+  BreastSize: 67
   BaseSkills:
   - "\u0414\u0440\u043E\u0447\u043A\u0430"
   - "\u041C\u0438\u043D\u044C\u0435\u0442"

@@ -1220,8 +1220,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseVisitors: 5
   spawnPoint: {fileID: 746849333}
-  minSpawnDelay: 10
-  maxDayDuration: 30
+  minSpawnDelay: 5
+  maxSpawnDelay: 10
+  maxDayDuration: 120
   initialGold: 1000
   initialPopularity: 0
   clientType1Prefabs:

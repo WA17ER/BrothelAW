@@ -11,6 +11,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int baseVisitors = 3;
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private int minSpawnDelay = 1;
+    [SerializeField] private int maxSpawnDelay = 5;
     [SerializeField] private float maxDayDuration = 300f;
     [SerializeField] private float initialGold = 1000f;
     [SerializeField] private float initialPopularity = 100f;
@@ -52,9 +53,10 @@ public class GameManager : MonoBehaviour
 
     public int BaseVisitors => baseVisitors;
     public int MinSpawnDelay => minSpawnDelay;
+    public int MaxSpawnDelay => maxSpawnDelay;
     public float MaxDayDuration => maxDayDuration;
     public Dictionary<int, int> ExtraVisitors => extraVisitors;
-    public int TotalClients => Mathf.Min(baseVisitors + extraVisitors.Values.Sum(), MaxClientsPerDay);
+    public int TotalClients => Mathf.Min(baseVisitors + extraVisitors.Values.Sum(), maxClientsPerDay);
     public List<ClientData> ClientPool => clientPool;
     public int ClientsSpawnedToday { get => clientsSpawnedToday; set { clientsSpawnedToday = value; onStateChange.Invoke(); } }
     public Dictionary<int, List<GameObject>> ClientVisualModels => clientVisualModels;
@@ -122,28 +124,6 @@ public class GameManager : MonoBehaviour
     {
         extraVisitors.Clear();
         extraVisitors[1] = baseVisitors;
-        int remainingClients = MaxClientsPerDay - baseVisitors;
-        if (remainingClients <= 0) return;
-
-        if (currentPopularity >= 500f)
-        {
-            extraVisitors[2] = Mathf.Min(4, remainingClients);
-            remainingClients -= extraVisitors[2];
-        }
-        if (currentPopularity >= 1000f && remainingClients > 0)
-        {
-            extraVisitors[3] = Mathf.Min(2, remainingClients);
-            remainingClients -= extraVisitors[3];
-        }
-        if (currentPopularity >= 1500f && remainingClients > 0)
-        {
-            extraVisitors[4] = Mathf.Min(1, remainingClients);
-        }
-
-        if (baseVisitors + extraVisitors.Values.Sum() > MaxClientsPerDay)
-        {
-            Debug.Log($"Лимит клиентов применён: {baseVisitors + extraVisitors.Values.Sum()} ограничено до {MaxClientsPerDay}.");
-        }
     }
 
     [ContextMenu("Start Day")]

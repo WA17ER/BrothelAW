@@ -6,10 +6,10 @@ public class SpawnHandler : MonoBehaviour
 {
     public static SpawnHandler Instance { get; private set; }
 
-    [SerializeField] private GameManager gameManager;
-    [SerializeField] private Transform spawnPoint;
+    private bool isSpawning = false;
+    private List<GameObject> clientPrefabs = new List<GameObject>();
+    private float spawnTimer = 0f;
     private Coroutine spawnCoroutine;
-    private bool isPaused = false;
 
     private void Awake()
     {
@@ -21,137 +21,90 @@ public class SpawnHandler : MonoBehaviour
         else
         {
             Destroy(gameObject);
-            return;
         }
-        if (gameManager == null || spawnPoint == null)
-        {
-            Debug.LogError("SpawnHandler: GameManager или spawnPoint не назначены.");
-            enabled = false;
-        }
+    }
+
+    public void Initialize(List<GameObject> clientType1Prefabs, List<GameObject> clientType2Prefabs, List<GameObject> clientType3Prefabs, List<GameObject> clientType4Prefabs)
+    {
+        clientPrefabs.Clear();
+        clientPrefabs.AddRange(clientType1Prefabs);
+        clientPrefabs.AddRange(clientType2Prefabs);
+        clientPrefabs.AddRange(clientType3Prefabs);
+        clientPrefabs.AddRange(clientType4Prefabs);
     }
 
     public void StartSpawning()
     {
-        if (spawnCoroutine != null)
+        if (isSpawning)
         {
-            StopCoroutine(spawnCoroutine);
+            Debug.LogWarning("Спавн уже активен.");
+            return;
         }
-        isPaused = false;
+        isSpawning = true;
         spawnCoroutine = StartCoroutine(SpawnClients());
     }
 
     public void PauseSpawning()
     {
-        isPaused = true;
-        Debug.Log("Спавн клиентов поставлен на паузу.");
+        isSpawning = false;
+        if (spawnCoroutine != null)
+        {
+            StopCoroutine(spawnCoroutine);
+            spawnCoroutine = null;
+        }
     }
 
     public void ResumeSpawning()
     {
-        isPaused = false;
-        Debug.Log("Спавн клиентов возобновлён.");
+        if (!isSpawning)
+        {
+            isSpawning = true;
+            spawnCoroutine = StartCoroutine(SpawnClients());
+        }
     }
 
     private IEnumerator SpawnClients()
     {
-        // Задержка перед спавном первого клиента (10-20 секунд)
-        yield return new WaitForSeconds(Random.Range(10f, 20f));
-
-        int totalClients = gameManager.TotalClients;
-        int baseClients = gameManager.BaseVisitors;
-        Dictionary<int, int> extraVisitors = gameManager.ExtraVisitors;
-        int spawned = 0;
-        float spawnInterval = gameManager.MaxDayDuration / Mathf.Max(totalClients, 1);
-
-        // Спавн базовых клиентов (Type1)
-        for (int i = 0; i < baseClients && spawned < totalClients; i++)
+        while (isSpawning && GameManager.Instance.ClientsSpawnedToday < GameManager.Instance.TotalClients)
         {
-            if (isPaused)
+            spawnTimer -= Time.deltaTime;
+            if (spawnTimer <= 0f)
             {
-                yield return null;
-                continue;
+                SpawnClient();
+                spawnTimer = GameManager.Instance.MinSpawnDelay;
             }
-            List<GameObject> type1Prefabs = gameManager.ClientVisualModels[1];
-            if (type1Prefabs.Count == 0)
-            {
-                Debug.LogError("SpawnHandler: ClientVisualModels[1] пустой.");
-                break;
-            }
-            int index = Random.Range(0, type1Prefabs.Count);
-            GameObject clientGO = Instantiate(type1Prefabs[index], spawnPoint.position, Quaternion.identity);
-            ClientData client = clientGO.GetComponent<ClientData>();
-            if (client == null)
-            {
-                Debug.LogError($"ClientData отсутствует на клиенте {clientGO.name}.");
-                Destroy(clientGO);
-                continue;
-            }
-            client.Data.isSick = Random.value < client.Data.sickChance / 100f;
-            Debug.Log($"Клиент {clientGO.name} создан, болен: {client.Data.isSick}, тип: {client.Data.clientType}");
-            gameManager.ClientPool.Add(client);
-            gameManager.ClientsSpawnedToday++;
-            spawned++;
-            float delay = Random.Range(gameManager.MinSpawnDelay, spawnInterval);
-            float elapsed = 0f;
-            while (elapsed < delay)
-            {
-                if (isPaused)
-                {
-                    yield return null;
-                    continue;
-                }
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
+            yield return null;
+        }
+        isSpawning = false;
+    }
+
+    private void SpawnClient()
+    {
+        if (GameManager.Instance.ClientsSpawnedToday >= GameManager.Instance.TotalClients)
+        {
+            Debug.Log("Достигнут лимит клиентов на день.");
+            return;
         }
 
-        // Спавн дополнительных клиентов (Type2–Type4)
-        foreach (var extra in extraVisitors)
+        if (clientPrefabs.Count == 0)
         {
-            int type = extra.Key;
-            int count = extra.Value;
-            List<GameObject> extraPrefabs = gameManager.ClientVisualModels[type];
-            if (extraPrefabs.Count == 0)
-            {
-                Debug.LogError($"SpawnHandler: ClientVisualModels[{type}] пустой.");
-                continue;
-            }
-            for (int i = 0; i < count && spawned < totalClients; i++)
-            {
-                if (isPaused)
-                {
-                    yield return null;
-                    continue;
-                }
-                int index = Random.Range(0, extraPrefabs.Count);
-                GameObject clientGO = Instantiate(extraPrefabs[index], spawnPoint.position, Quaternion.identity);
-                ClientData client = clientGO.GetComponent<ClientData>();
-                if (client == null)
-                {
-                    Debug.LogError($"ClientData отсутствует на клиенте {clientGO.name}.");
-                    Destroy(clientGO);
-                    continue;
-                }
-                client.Data.isSick = Random.value < client.Data.sickChance / 100f;
-                Debug.Log($"Клиент {clientGO.name} создан, болен: {client.Data.isSick}, тип: {client.Data.clientType}");
-                gameManager.ClientPool.Add(client);
-                gameManager.ClientsSpawnedToday++;
-                spawned++;
-                float delay = Random.Range(gameManager.MinSpawnDelay, spawnInterval);
-                float elapsed = 0f;
-                while (elapsed < delay)
-                {
-                    if (isPaused)
-                    {
-                        yield return null;
-                        continue;
-                    }
-                    elapsed += Time.deltaTime;
-                    yield return null;
-                }
-            }
+            Debug.LogError("Нет доступных префабов клиентов для спавна.");
+            return;
         }
 
-        Debug.Log($"Всего клиентов: {totalClients}, Тип 1: {baseClients}, Доп: {string.Join(", ", extraVisitors)}");
+        GameObject clientPrefab = clientPrefabs[Random.Range(0, clientPrefabs.Count)];
+        GameObject clientGO = Instantiate(clientPrefab, GameManager.Instance.SpawnPoint.position, Quaternion.identity);
+        ClientData client = clientGO.GetComponent<ClientData>();
+        if (client == null)
+        {
+            Debug.LogError($"ClientData отсутствует на префабе клиента {clientGO.name}.");
+            Destroy(clientGO);
+            return;
+        }
+
+        client.InitializeClientPreferences();
+        GameManager.Instance.ClientPool.Add(client);
+        GameManager.Instance.ClientsSpawnedToday++;
+        Debug.Log($"Клиент {clientGO.name} создан с болезнью {(client.ActiveSick != null ? client.ActiveSick.SickName : "none")}.");
     }
 }

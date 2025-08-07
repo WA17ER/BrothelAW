@@ -12,6 +12,7 @@ public class ClientData : MonoBehaviour
     public char breastSize;
     public string race;
     public Employee SpecificEmployee;
+    public SicknessSO ActiveSick;
     public ClientDataSO Data => data;
 
     private void Awake()
@@ -46,6 +47,8 @@ public class ClientData : MonoBehaviour
             breastSize = '\0';
             race = "";
             SpecificEmployee = null;
+            ActiveSick = null;
+            Debug.Log($"Клиент {gameObject.name} здоров.");
             return;
         }
 
@@ -90,7 +93,28 @@ public class ClientData : MonoBehaviour
                 break;
         }
 
-        Debug.Log($"Client {gameObject.name} initialized: Type={data.clientType}, RequestedService={RequestedService}, bodyType={bodyType}, breastSize={breastSize}, race={race}, SpecificEmployee={SpecificEmployee?.name ?? "null"}");
+        // Определение болезни клиента
+        if (data.sickChance > 0 && Random.value < data.sickChance / 100f)
+        {
+            if (data.possibleSicknesses != null && data.possibleSicknesses.Count > 0)
+            {
+                ActiveSick = data.possibleSicknesses[Random.Range(0, data.possibleSicknesses.Count)];
+                Debug.Log($"Клиент {gameObject.name} болен {ActiveSick.SickName}.");
+            }
+            else
+            {
+                Debug.LogWarning($"Клиент {gameObject.name} должен быть болен, но possibleSicknesses пуст или null.");
+                ActiveSick = null;
+                Debug.Log($"Клиент {gameObject.name} здоров.");
+            }
+        }
+        else
+        {
+            ActiveSick = null;
+            Debug.Log($"Клиент {gameObject.name} здоров.");
+        }
+
+        Debug.Log($"Client {gameObject.name} initialized: Type={data.clientType}, RequestedService={RequestedService}, bodyType={bodyType}, breastSize={breastSize}, race={race}, SpecificEmployee={SpecificEmployee?.name ?? "null"}, ActiveSick={ActiveSick?.SickName ?? "none"}");
     }
 
     public bool IsMatch(Employee employee, float serviceCost)

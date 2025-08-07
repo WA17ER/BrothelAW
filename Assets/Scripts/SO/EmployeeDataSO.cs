@@ -28,19 +28,26 @@ public class EmployeeDataSO : ScriptableObject
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        string[] validBodyTypes = { "Обычное", "Доска", "Милое", "Мускулистое", "Высокая", "Спортивное", "Желанное" };
+        string[] validBodyTypes = { "Обычное", "Доска", "Милое", "Мускулистое", "Высокая", "Спортивное", "Желанное", "Великан", "Перевёртыш" };
         if (!string.IsNullOrEmpty(BodyType) && !System.Array.Exists(validBodyTypes, bt => bt == BodyType))
         {
             Debug.LogWarning($"EmployeeDataSO {employeeName}: BodyType ({BodyType}) должен быть одним из: {string.Join(", ", validBodyTypes)}.");
         }
 
-        if (specialRace != SpecialRace.None && Race != specialRace.ToString())
+        var raceSpecialRaceMap = new System.Collections.Generic.Dictionary<string, SpecialRace>
+        {
+            {"Суккуб", SpecialRace.Succubus},
+            {"Допельгангер", SpecialRace.Doppelganger},
+            {"Ангел", SpecialRace.Angel}
+        };
+
+        if (specialRace != SpecialRace.None && (!raceSpecialRaceMap.ContainsKey(Race) || raceSpecialRaceMap[Race] != specialRace))
         {
             Debug.LogWarning($"EmployeeDataSO {employeeName}: SpecialRace ({specialRace}) должен соответствовать Race ({Race}).");
         }
-        else if (specialRace == SpecialRace.None && (Race == "Succubus" || Race == "Doppelganger" || Race == "Angel"))
+        else if (specialRace == SpecialRace.None && raceSpecialRaceMap.ContainsKey(Race))
         {
-            Debug.LogWarning($"EmployeeDataSO {employeeName}: Race ({Race}) требует SpecialRace ({Race}), а не None.");
+            Debug.LogWarning($"EmployeeDataSO {employeeName}: Race ({Race}) требует SpecialRace ({raceSpecialRaceMap[Race]}), а не None.");
         }
     }
 #endif

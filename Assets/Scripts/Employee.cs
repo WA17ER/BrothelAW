@@ -14,8 +14,7 @@ public class Employee : MonoBehaviour
         Available,
         Sick,
         Servicing,
-        Tired,
-        Healing
+        Tired
     }
 
     public string Race => data.Race;
@@ -55,6 +54,7 @@ public class Employee : MonoBehaviour
         {
             SetState(EmployeeState.Tired);
             Debug.Log($"Сотрудница {name} устала, выносливость: {staminaCurrent}.");
+            EmployeeManager.Instance.MoveEmployeeToList(this, EmployeeState.Tired);
         }
     }
 
@@ -64,6 +64,7 @@ public class Employee : MonoBehaviour
         {
             SetState(EmployeeState.Sick);
             Debug.Log($"Сотрудница {name} заболела после обслуживания клиента.");
+            EmployeeManager.Instance.MoveEmployeeToList(this, EmployeeState.Sick);
         }
     }
 
@@ -73,14 +74,7 @@ public class Employee : MonoBehaviour
         if (staminaCurrent <= 0 && state != EmployeeState.Sick)
         {
             SetState(EmployeeState.Tired);
-        }
-        if (state == EmployeeState.Healing)
-        {
-            if (Random.value < 0.5f)
-            {
-                SetState(EmployeeState.Available);
-                Debug.Log($"Сотрудница {name} выздоровела.");
-            }
+            EmployeeManager.Instance.MoveEmployeeToList(this, EmployeeState.Tired);
         }
     }
 }

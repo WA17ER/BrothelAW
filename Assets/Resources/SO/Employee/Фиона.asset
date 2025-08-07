@@ -12,12 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1669e47261aedac479a132046d4dc64d, type: 3}
   m_Name: "\u0424\u0438\u043E\u043D\u0430"
   m_EditorClassIdentifier: 
-  race: "\u042D\u043B\u044C\u0444"
-  bodyTypes:
-  - "\u041E\u0431\u044B\u0447\u043D\u043E\u0435"
-  - "\u0412\u044B\u0441\u043E\u043A\u0430\u044F"
-  breastSize: 68
-  baseSkills:
+  employeeName: "\u0424\u0438\u043E\u043D\u0430"
+  Race: "\u042D\u043B\u044C\u0444"
+  BodyType: "\u0412\u044B\u0441\u043E\u043A\u0430\u044F"
+  BreastSize: 69
+  BaseSkills:
   - "\u0414\u0440\u043E\u0447\u043A\u0430"
   - "\u041C\u0438\u043D\u044C\u0435\u0442"
   - "\u0414\u0440\u043E\u0447\u043A\u0430 \u0421\u0438\u0441\u044C\u043A\u0430\u043C\u0438"
@@ -26,4 +25,5 @@ MonoBehaviour:
   - "\u0410\u043C\u0430\u0437\u043E\u043D\u043A\u0430"
   - "\u0420\u0430\u043A\u043E\u043C"
   - "\u0421\u0442\u043E\u044F"
-  sickChanceModifier: 10
+  sickResistance: 0
+  specialRace: 0

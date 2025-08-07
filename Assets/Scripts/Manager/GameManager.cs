@@ -19,7 +19,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] private List<GameObject> clientType3Prefabs;
     [SerializeField] private List<GameObject> clientType4Prefabs;
     [SerializeField] private float popularityPenalty = -10f;
-    [SerializeField] private float healingCost = 50f;
     [SerializeField] private List<EmployeeDataSO> availableEmployeeData;
     [SerializeField] private EmployeeDataSO[] initialEmployees;
     [SerializeField] private int maxClientsPerDay = 40;
@@ -28,10 +27,9 @@ public class GameManager : MonoBehaviour
     private List<ClientData> clientPool = new List<ClientData>();
     private Dictionary<int, int> extraVisitors = new Dictionary<int, int>();
     private List<Employee> activeEmployees = new List<Employee>();
-    private List<Employee> sickEmployees = new List<Employee>();
     private float currentGold;
     private float currentPopularity;
-    private int dayCount = 1;
+    private int dayCount = 0;
     private int clientsSpawnedToday = 0;
     private int difficultyLevel = 1;
     private Dictionary<int, List<GameObject>> clientVisualModels;
@@ -61,10 +59,10 @@ public class GameManager : MonoBehaviour
     public int ClientsSpawnedToday { get => clientsSpawnedToday; set { clientsSpawnedToday = value; onStateChange.Invoke(); } }
     public Dictionary<int, List<GameObject>> ClientVisualModels => clientVisualModels;
     public List<Employee> ActiveEmployees => activeEmployees;
-    public List<Employee> SickEmployees => sickEmployees;
     public int DifficultyLevel => difficultyLevel;
     public bool IsDayPaused => isDayPaused;
     public float ProgressPerService => progressPerService;
+    public Transform SpawnPoint => spawnPoint;
 
     private void Awake()
     {
@@ -89,16 +87,9 @@ public class GameManager : MonoBehaviour
             { 4, clientType4Prefabs }
         };
 
-        if (initialEmployees.Length != 3)
+        foreach (var employeeData in initialEmployees)
         {
-            Debug.LogError("GameManager: initialEmployees должен содержать ровно 3 сотрудницы.");
-        }
-        else
-        {
-            foreach (var employeeData in initialEmployees)
-            {
-                AddEmployee(employeeData);
-            }
+            AddEmployee(employeeData);
         }
 
         UpdateExtraVisitors();
@@ -156,6 +147,7 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("День уже активен, нельзя начать новый.");
             return;
         }
+        dayCount++;
         isDayActive = true;
         isDayPaused = false;
         clientsSpawnedToday = 0;
@@ -164,7 +156,7 @@ public class GameManager : MonoBehaviour
         Debug.Log($"День {dayCount} начался.");
         if (EmployeeManager.Instance != null)
         {
-            EmployeeManager.Instance.AddEmployees(activeEmployees.Where(e => e.GetState() == Employee.EmployeeState.Available).ToList());
+            EmployeeManager.Instance.AddEmployees(activeEmployees);
         }
         if (SpawnHandler.Instance != null)
         {
@@ -270,7 +262,7 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Популярность начислена: +5 для клиента {client.name} после обслуживания.");
         if (employee != null)
         {
-            EmployeeManager.Instance.CompleteService(employee, client.RequestedService, client.Data.isSick);
+            EmployeeManager.Instance.CompleteService(employee, client.RequestedService, client.ActiveSick != null);
         }
         else
         {
@@ -311,27 +303,6 @@ public class GameManager : MonoBehaviour
         customer.ExitService();
     }
 
-    public void HealEmployee(Employee employee)
-    {
-        if (employee == null)
-        {
-            Debug.LogError("HealEmployee: Сотрудница null.");
-            return;
-        }
-        if (employee.GetState() == Employee.EmployeeState.Sick && currentGold >= healingCost)
-        {
-            currentGold -= healingCost;
-            employee.SetState(Employee.EmployeeState.Healing);
-            sickEmployees.Add(employee);
-            Debug.Log($"Сотрудница {employee.name} отправлена на лечение за {healingCost} золота.");
-            onStateChange.Invoke();
-        }
-        else
-        {
-            Debug.LogError($"Нельзя отправить на лечение: Недостаточно золота ({currentGold}/{healingCost}) или сотрудница {employee.name} не больна (состояние: {employee.GetState()}).");
-        }
-    }
-
     public void EndDay()
     {
         isDayActive = false;
@@ -343,13 +314,11 @@ public class GameManager : MonoBehaviour
         }
         clientPool.Clear();
         clientsSpawnedToday = 0;
-        dayCount++;
         difficultyLevel = Mathf.FloorToInt(dayCount / 5f) + 1;
         if (EmployeeManager.Instance != null)
         {
             EmployeeManager.Instance.EndDayUpdate();
-            activeEmployees = EmployeeManager.Instance.GetAllEmployees();
-            sickEmployees = EmployeeManager.Instance.SickEmployees;
+            activeEmployees = EmployeeManager.Instance.GetAllEmployees().Where(e => e.GetState() == Employee.EmployeeState.Available || e.GetState() == Employee.EmployeeState.Tired || e.GetState() == Employee.EmployeeState.Sick).ToList();
         }
         UpdateExtraVisitors();
         onStateChange.Invoke();
@@ -377,11 +346,6 @@ public class GameManager : MonoBehaviour
         Employee employee = employeeGO.AddComponent<Employee>();
         employee.SetData(employeeData);
         activeEmployees.Add(employee);
-        if (employee.GetState() == Employee.EmployeeState.Sick || employee.GetState() == Employee.EmployeeState.Healing)
-        {
-            sickEmployees.Add(employee);
-            Debug.Log($"Сотрудница {employee.name} добавлена в sickEmployees.");
-        }
         Debug.Log($"Сотрудница {employeeData.name} добавлена.");
         onEmployeeListChanged.Invoke();
     }
@@ -410,9 +374,9 @@ public class GameManager : MonoBehaviour
         PlayerPrefs.SetFloat("CurrentPopularity", currentPopularity);
         PlayerPrefs.SetInt("DayCount", dayCount);
         PlayerPrefs.SetInt("DifficultyLevel", difficultyLevel);
-        string[] employeeNames = activeEmployees.Select(e => e.Data.name).ToArray();
+        string[] employeeNames = EmployeeManager.Instance.GetAllEmployees().Select(e => e.Data.name).ToArray();
         PlayerPrefs.SetString("ActiveEmployees", string.Join(",", employeeNames));
-        foreach (var employee in activeEmployees)
+        foreach (var employee in EmployeeManager.Instance.GetAllEmployees())
         {
             PlayerPrefs.SetInt($"EmployeeState_{employee.Data.name}", (int)employee.GetState());
             foreach (var skill in employee.Skills)
@@ -431,7 +395,7 @@ public class GameManager : MonoBehaviour
     {
         currentGold = PlayerPrefs.GetFloat("CurrentGold", initialGold);
         currentPopularity = PlayerPrefs.GetFloat("CurrentPopularity", initialPopularity);
-        dayCount = PlayerPrefs.GetInt("DayCount", 1);
+        dayCount = PlayerPrefs.GetInt("DayCount", 0);
         difficultyLevel = PlayerPrefs.GetInt("DifficultyLevel", 1);
         string employeeNames = PlayerPrefs.GetString("ActiveEmployees", "");
         if (!string.IsNullOrEmpty(employeeNames))
@@ -444,34 +408,20 @@ public class GameManager : MonoBehaviour
                 {
                     AddEmployee(data);
                     Employee employee = activeEmployees.Find(e => e.Data.name == name);
-                    employee.SetState((Employee.EmployeeState)PlayerPrefs.GetInt($"EmployeeState_{name}", (int)Employee.EmployeeState.Available));
-                    foreach (var skillName in data.BaseSkills)
+                    if (employee != null)
                     {
-                        var currentSkill = employee.Skills[skillName];
-                        employee.Skills[skillName] = (PlayerPrefs.GetInt($"EmployeeSkillLevel_{name}_{skillName}", 0),
-                                                     PlayerPrefs.GetInt($"EmployeeSkillProgress_{name}_{skillName}", 0));
+                        employee.SetState((Employee.EmployeeState)PlayerPrefs.GetInt($"EmployeeState_{name}", (int)Employee.EmployeeState.Available));
+                        foreach (var skillName in data.BaseSkills)
+                        {
+                            var currentSkill = employee.Skills[skillName];
+                            employee.Skills[skillName] = (PlayerPrefs.GetInt($"EmployeeSkillLevel_{name}_{skillName}", 0),
+                                                         PlayerPrefs.GetInt($"EmployeeSkillProgress_{name}_{skillName}", 0));
+                        }
+                        employee.StaminaCurrent = PlayerPrefs.GetFloat($"EmployeeStamina_{name}", employee.StaminaMax);
                     }
-                    employee.StaminaCurrent = PlayerPrefs.GetFloat($"EmployeeStamina_{name}", employee.StaminaMax);
                 }
             }
         }
         onStateChange.Invoke();
-    }
-
-    [ContextMenu("Heal Test Employee")]
-    public void HealTestEmployee()
-    {
-        if (activeEmployees.Count == 0)
-        {
-            Debug.LogError("Нет активных сотрудниц для теста лечения.");
-            return;
-        }
-        Employee sickEmployee = sickEmployees.Find(e => e.GetState() == Employee.EmployeeState.Sick);
-        if (sickEmployee == null)
-        {
-            Debug.LogError("HealTestEmployee: Нет больных сотрудниц для лечения.");
-            return;
-        }
-        HealEmployee(sickEmployee);
     }
 }

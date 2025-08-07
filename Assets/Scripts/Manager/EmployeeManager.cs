@@ -33,7 +33,7 @@ public class EmployeeManager : MonoBehaviour
         {"Некомата", 25},
         {"Дриада", 30},
         {"Гарпия", 35},
-        {"Великан", 40}
+        {"Они", 40}
     };
     private Dictionary<string, int> bodyTypeModifiers = new Dictionary<string, int>
     {
@@ -43,7 +43,9 @@ public class EmployeeManager : MonoBehaviour
         {"Мускулистое", 12},
         {"Высокая", 15},
         {"Спортивное", 18},
-        {"Желанное", 20}
+        {"Желанное", 20},
+        {"Перевёртыш", 22},
+        {"Великан", 25}
     };
     private Dictionary<char, int> breastSizeModifiers = new Dictionary<char, int>
     {
@@ -95,14 +97,13 @@ public class EmployeeManager : MonoBehaviour
             MoveEmployeeToList(employee, employee.GetState());
             Debug.Log($"Сотрудница {employee.name} добавлена в сцену, состояние: {employee.GetState()}.");
         }
-        Debug.Log($"Добавлено {employees.Count} сотрудниц в EmployeeManager.");
+        Debug.Log($"Добавлено {availableEmployees.Count} сотрудниц в EmployeeManager (доступных и больных).");
     }
 
     public List<Employee> GetAllEmployees()
     {
         List<Employee> allEmployees = new List<Employee>();
         allEmployees.AddRange(availableEmployees);
-        allEmployees.AddRange(sickEmployees);
         allEmployees.AddRange(servicingEmployees);
         allEmployees.AddRange(tiredEmployees);
         return allEmployees;
@@ -122,8 +123,9 @@ public class EmployeeManager : MonoBehaviour
                 Debug.Log($"Сотрудница {employee.name} перемещена в availableEmployees.");
                 break;
             case Employee.EmployeeState.Sick:
+                availableEmployees.Add(employee); // Больные сотрудницы остаются доступными
                 sickEmployees.Add(employee);
-                Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees.");
+                Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees и availableEmployees.");
                 break;
             case Employee.EmployeeState.Servicing:
                 servicingEmployees.Add(employee);
@@ -132,10 +134,6 @@ public class EmployeeManager : MonoBehaviour
             case Employee.EmployeeState.Tired:
                 tiredEmployees.Add(employee);
                 Debug.Log($"Сотрудница {employee.name} перемещена в tiredEmployees.");
-                break;
-            case Employee.EmployeeState.Healing:
-                sickEmployees.Add(employee);
-                Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees (Healing).");
                 break;
         }
         GameManager.Instance.onEmployeeListChanged.Invoke();

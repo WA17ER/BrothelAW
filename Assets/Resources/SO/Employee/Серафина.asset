@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1669e47261aedac479a132046d4dc64d, type: 3}
-  m_Name: "\u041B\u0438\u043B\u0438\u0442"
+  m_Name: "\u0421\u0435\u0440\u0430\u0444\u0438\u043D\u0430"
   m_EditorClassIdentifier: 
-  employeeName: "\u041B\u0438\u043B\u0438\u0442"
-  Race: "\u0421\u0443\u043A\u043A\u0443\u0431"
+  employeeName: "\u0421\u0435\u0440\u0430\u0444\u0438\u043D\u0430"
+  Race: "\u0410\u043D\u0433\u0435\u043B"
   BodyType: "\u0416\u0435\u043B\u0430\u043D\u043D\u043E\u0435"
   BreastSize: 68
   StaminaMax: 10
@@ -38,4 +38,4 @@ MonoBehaviour:
   - "\u0420\u0430\u043A\u043E\u043C"
   - "\u0421\u0442\u043E\u044F"
   sickResistance: 0
-  specialRace: 1
+  specialRace: 3

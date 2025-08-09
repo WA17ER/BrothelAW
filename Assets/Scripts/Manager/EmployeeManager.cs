@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class EmployeeManager : MonoBehaviour
@@ -9,15 +10,64 @@ public class EmployeeManager : MonoBehaviour
     private List<Employee> sickEmployees = new List<Employee>();
     private List<Employee> servicingEmployees = new List<Employee>();
     private List<Employee> tiredEmployees = new List<Employee>();
+    private List<Employee> healingEmployees = new List<Employee>();
     private List<string> availableServices = new List<string>
     {
         "Дрочка", "Миньет", "Дрочка Сиськами", "Миссионерская", "Наездница", "Амазонка", "Раком", "Стоя"
+    };
+    private Dictionary<string, int> serviceBasePrices = new Dictionary<string, int>
+    {
+        {"Дрочка", 100},
+        {"Миньет", 150},
+        {"Дрочка Сиськами", 175},
+        {"Миссионерская", 200},
+        {"Наездница", 225},
+        {"Амазонка", 250},
+        {"Раком", 275},
+        {"Стоя", 300}
+    };
+    private Dictionary<string, int> raceModifiers = new Dictionary<string, int>
+    {
+        {"Человек", 10},
+        {"Эльф", 15},
+        {"Тёмный Эльф", 20},
+        {"Некомата", 25},
+        {"Дриада", 30},
+        {"Гарпия", 35},
+        {"Они", 40}
+    };
+    private Dictionary<string, int> bodyTypeModifiers = new Dictionary<string, int>
+    {
+        {"Обычное", 5},
+        {"Доска", 7},
+        {"Милое", 10},
+        {"Мускулистое", 12},
+        {"Высокая", 15},
+        {"Спортивное", 18},
+        {"Желанное", 20},
+        {"Перевёртыш", 22},
+        {"Великан", 25}
+    };
+    private Dictionary<char, int> breastSizeModifiers = new Dictionary<char, int>
+    {
+        {'A', 5},
+        {'B', 10},
+        {'C', 15},
+        {'D', 20},
+        {'E', 25}
+    };
+    private Dictionary<EmployeeDataSO.SpecialRace, int> specialRaceModifiers = new Dictionary<EmployeeDataSO.SpecialRace, int>
+    {
+        {EmployeeDataSO.SpecialRace.Succubus, 200},
+        {EmployeeDataSO.SpecialRace.Doppelganger, 120},
+        {EmployeeDataSO.SpecialRace.Angel, 300}
     };
 
     public List<Employee> AvailableEmployees => availableEmployees;
     public List<Employee> SickEmployees => sickEmployees;
     public List<Employee> ServicingEmployees => servicingEmployees;
     public List<Employee> TiredEmployees => tiredEmployees;
+    public List<Employee> HealingEmployees => healingEmployees;
 
     private void Awake()
     {
@@ -38,6 +88,7 @@ public class EmployeeManager : MonoBehaviour
         sickEmployees.Clear();
         servicingEmployees.Clear();
         tiredEmployees.Clear();
+        healingEmployees.Clear();
 
         foreach (var employee in employees)
         {
@@ -59,6 +110,7 @@ public class EmployeeManager : MonoBehaviour
         allEmployees.AddRange(sickEmployees);
         allEmployees.AddRange(servicingEmployees);
         allEmployees.AddRange(tiredEmployees);
+        allEmployees.AddRange(healingEmployees);
         return allEmployees;
     }
 
@@ -68,6 +120,12 @@ public class EmployeeManager : MonoBehaviour
         sickEmployees.Remove(employee);
         servicingEmployees.Remove(employee);
         tiredEmployees.Remove(employee);
+        healingEmployees.Remove(employee);
+
+        if (newState != Employee.EmployeeState.Sick)
+        {
+            GameManager.Instance.SickEmployees.Remove(employee);
+        }
 
         switch (newState)
         {
@@ -77,6 +135,10 @@ public class EmployeeManager : MonoBehaviour
                 break;
             case Employee.EmployeeState.Sick:
                 sickEmployees.Add(employee);
+                if (!GameManager.Instance.SickEmployees.Contains(employee))
+                {
+                    GameManager.Instance.SickEmployees.Add(employee);
+                }
                 Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees.");
                 break;
             case Employee.EmployeeState.Servicing:
@@ -88,31 +150,79 @@ public class EmployeeManager : MonoBehaviour
                 Debug.Log($"Сотрудница {employee.name} перемещена в tiredEmployees.");
                 break;
             case Employee.EmployeeState.Healing:
-                sickEmployees.Add(employee);
-                Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees (Healing).");
+                healingEmployees.Add(employee);
+                Debug.Log($"Сотрудница {employee.name} перемещена в healingEmployees.");
                 break;
         }
         GameManager.Instance.onEmployeeListChanged.Invoke();
     }
 
-    public float AssignEmployee(ClientData client, Employee employee)
+    public float CalculateServiceCost(ClientData client, Employee employee)
     {
         if (employee == null)
         {
-            Debug.LogError($"AssignEmployee: Employee null для клиента {client.name}.");
+            Debug.LogError($"CalculateServiceCost: Employee null для клиента {client.name}.");
             return 0f;
         }
         string service = client.RequestedService;
-        if (!employee.Data.servicePrices.ContainsKey(service))
+        if (!employee.Data.BaseSkills.Contains(service))
         {
-            Debug.LogError($"AssignEmployee: Услуга {service} не найдена в servicePrices сотрудницы {employee.name}.");
+            Debug.LogError($"CalculateServiceCost: Услуга {service} не найдена в навыках сотрудницы {employee.name}.");
             return 0f;
         }
+        if (!serviceBasePrices.ContainsKey(service))
+        {
+            Debug.LogError($"CalculateServiceCost: Услуга {service} не найдена в serviceBasePrices.");
+            return 0f;
+        }
+
+        float basePrice = serviceBasePrices[service];
+        float reward = basePrice;
+        var specialRace = employee.Data.GetSpecialRace();
+
+        if (specialRace != EmployeeDataSO.SpecialRace.None)
+        {
+            if (!specialRaceModifiers.ContainsKey(specialRace))
+            {
+                Debug.LogError($"CalculateServiceCost: specialRaceModifier не найден для {specialRace}.");
+                return 0f;
+            }
+            reward += specialRaceModifiers[specialRace];
+            reward += basePrice * 0.1f * employee.Skills[service].level;
+        }
+        else
+        {
+            int raceModifier = string.IsNullOrEmpty(employee.Race) ? 0 : (raceModifiers.ContainsKey(employee.Race) ? raceModifiers[employee.Race] : 0);
+            int bodyModifier = string.IsNullOrEmpty(employee.BodyType) ? 0 : (bodyTypeModifiers.ContainsKey(employee.BodyType) ? bodyTypeModifiers[employee.BodyType] : 0);
+            int breastModifier = employee.BreastSize == '\0' ? 0 : (breastSizeModifiers.ContainsKey(employee.BreastSize) ? breastSizeModifiers[employee.BreastSize] : 0);
+
+            reward += raceModifier;
+            reward += bodyModifier;
+            reward += breastModifier;
+            reward += basePrice * 0.1f * employee.Skills[service].level;
+
+            if (raceModifier == 0 && !string.IsNullOrEmpty(employee.Race))
+                Debug.LogWarning($"CalculateServiceCost: raceModifier не найден для {employee.Race}, использован 0.");
+            if (bodyModifier == 0 && !string.IsNullOrEmpty(employee.BodyType))
+                Debug.LogWarning($"CalculateServiceCost: bodyTypeModifier не найден для {employee.BodyType}, использован 0.");
+            if (breastModifier == 0 && employee.BreastSize != '\0')
+                Debug.LogWarning($"CalculateServiceCost: breastSizeModifier не найден для {employee.BreastSize}, использован 0.");
+        }
+
+        return reward;
+    }
+
+    public float AssignEmployee(ClientData client, Employee employee)
+    {
+        float reward = CalculateServiceCost(client, employee);
+        if (reward == 0f)
+        {
+            Debug.LogError($"AssignEmployee: Не удалось рассчитать стоимость для клиента {client.name} и сотрудницы {employee.name}.");
+            return 0f;
+        }
+
         employee.SetState(Employee.EmployeeState.Servicing);
         MoveEmployeeToList(employee, Employee.EmployeeState.Servicing);
-        int clientLevel = (int)client.Data.clientType;
-        int skillLevel = employee.Skills[service].level;
-        float reward = clientLevel * (skillLevel + 1) * employee.Data.servicePrices[service];
         Debug.Log($"Сотрудница {employee.name} назначена для клиента {client.name}, награда: {reward}.");
         GameManager.Instance.onEmployeeListChanged.Invoke();
         return reward;

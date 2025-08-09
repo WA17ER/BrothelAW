@@ -1,37 +1,57 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class Employee : MonoBehaviour
 {
-    public EmployeeDataSO Data { get; private set; }
-    public string Race => Data.Race;
-    public List<string> BodyTypes => Data.BodyTypes;
-    public char BreastSize => Data.BreastSize;
-    public List<string> BaseSkills => Data.BaseSkills;
-    public Dictionary<string, (int level, int progress)> Skills { get; private set; }
-    public float StaminaCurrent { get; set; }
-    public float StaminaMax => 10f;
-    private EmployeeState state = EmployeeState.Available;
-
     public enum EmployeeState
     {
         Available,
+        Sick,
         Servicing,
         Tired,
-        Sick,
         Healing
     }
 
-    public void SetData(EmployeeDataSO data)
+    private EmployeeDataSO data;
+    private string race;
+    private string bodyType;
+    private char breastSize;
+    private float staminaMax;
+    private float staminaCurrent;
+    private Dictionary<string, (int level, int progress)> skills = new Dictionary<string, (int, int)>();
+    private EmployeeState state = EmployeeState.Available;
+    public SicknessSO ActiveSick { get; private set; }
+    public int DiseaseDuration { get; private set; } // Public property for access
+
+    public EmployeeDataSO Data => data;
+    public string Race => race;
+    public string BodyType => bodyType;
+    public char BreastSize => breastSize;
+    public float StaminaMax => staminaMax;
+    public float StaminaCurrent
     {
-        Data = data;
-        Skills = new Dictionary<string, (int level, int progress)>();
-        foreach (var skill in data.BaseSkills)
+        get => staminaCurrent;
+        set => staminaCurrent = value;
+    }
+    public Dictionary<string, (int level, int progress)> Skills => skills;
+
+    public void SetData(EmployeeDataSO employeeData)
+    {
+        data = employeeData;
+        race = employeeData.Race;
+        bodyType = employeeData.BodyType;
+        breastSize = employeeData.BreastSize;
+        staminaMax = employeeData.StaminaMax;
+        staminaCurrent = staminaMax;
+        foreach (var skill in employeeData.BaseSkills)
         {
-            Skills[skill] = (0, 0);
+            skills[skill] = (0, 0);
         }
-        StaminaCurrent = StaminaMax;
+    }
+
+    public void SetState(EmployeeState newState)
+    {
+        state = newState;
     }
 
     public EmployeeState GetState()
@@ -39,20 +59,10 @@ public class Employee : MonoBehaviour
         return state;
     }
 
-    public void SetState(EmployeeState newState)
+    public void UpdateStamina(float cost)
     {
-        state = newState;
-        if (EmployeeManager.Instance != null)
-        {
-            EmployeeManager.Instance.MoveEmployeeToList(this, newState);
-        }
-        Debug.Log($"Состояние сотрудницы {name} изменено на {state}.");
-    }
-
-    public void UpdateStamina(float delta)
-    {
-        StaminaCurrent = Mathf.Clamp(StaminaCurrent - delta, 0, StaminaMax);
-        if (StaminaCurrent <= 0)
+        staminaCurrent = Mathf.Max(0, staminaCurrent - cost);
+        if (staminaCurrent == 0 && state != EmployeeState.Sick && state != EmployeeState.Healing)
         {
             SetState(EmployeeState.Tired);
         }
@@ -60,43 +70,55 @@ public class Employee : MonoBehaviour
 
     public void CheckSick(string service, bool clientIsSick)
     {
-        if (!clientIsSick)
+        if (clientIsSick && Random.value > data.sickResistance)
         {
-            Debug.Log($"Сотрудница {name} не заболела: клиент здоров.");
-            return;
+            if (data.PossibleSicknesses != null && data.PossibleSicknesses.Count > 0)
+            {
+                ActiveSick = data.PossibleSicknesses[Random.Range(0, data.PossibleSicknesses.Count)];
+                DiseaseDuration = 2; // Initial duration
+                SetState(EmployeeState.Sick);
+                Debug.Log($"Сотрудница {name} заболела с болезнью {ActiveSick.SickName}, длительность: {DiseaseDuration} дней.");
+            }
+            else
+            {
+                Debug.LogWarning($"Сотрудница {name} не может заболеть, так как PossibleSicknesses пуст.");
+            }
         }
-        float randomValue = Random.value * 100;
-        if (randomValue > Data.sickResistance)
+    }
+
+    public void Heal()
+    {
+        DiseaseDuration = 2; // Set initial duration for healing
+        SetState(EmployeeState.Healing);
+        Debug.Log($"Сотрудница {name} начала лечение, время болезни: {DiseaseDuration} дней.");
+        EmployeeManager.Instance.MoveEmployeeToList(this, state);
+    }
+
+    public void ProgressHealing()
+    {
+        if (state == EmployeeState.Healing && ActiveSick != null)
         {
-            SetState(EmployeeState.Sick);
-            Debug.Log($"Сотрудница {name} заболела при оказании услуги {service}. Шанс не заболеть: {Data.sickResistance}%");
-        }
-        else
-        {
-            Debug.Log($"Сотрудница {name} не заболела при оказании услуги {service}. Шанс не заболеть: {Data.sickResistance}%");
+            DiseaseDuration--;
+            if (DiseaseDuration > 0)
+            {
+                Debug.Log($"Сотрудница {name} продолжает лечение, время болезни: {DiseaseDuration} дней.");
+            }
+            else
+            {
+                ActiveSick = null;
+                SetState(EmployeeState.Available);
+                Debug.Log($"Сотрудница {name} вылечена.");
+            }
+            EmployeeManager.Instance.MoveEmployeeToList(this, state);
         }
     }
 
     public void EndDayUpdate()
     {
-        if (state == EmployeeState.Healing)
-        {
-            SetState(EmployeeState.Available);
-        }
+        staminaCurrent = staminaMax;
         if (state == EmployeeState.Tired)
         {
-            StaminaCurrent = StaminaMax;
             SetState(EmployeeState.Available);
-        }
-    }
-
-    [ContextMenu("Set Max Level")]
-    public void SetMaxLevel()
-    {
-        foreach (var skill in Skills.Keys.ToList())
-        {
-            Skills[skill] = (10, 100);
-            Debug.Log($"Сотрудница {name} навык {skill} установлен на уровень 10 прогрессия 100");
         }
     }
 }

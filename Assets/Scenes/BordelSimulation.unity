@@ -174,8 +174,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 922dc5582fa590c44899068db14cb311, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameManager: {fileID: 1807229840}
-  spawnPoint: {fileID: 746849333}
 --- !u!114 &259905625 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5921400865421737999, guid: 2ba3d6a7ccb0d55459bf8dd4cd95538f, type: 3}
@@ -1057,50 +1055,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1196372662}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &1202429410
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1202429412}
-  - component: {fileID: 1202429411}
-  m_Layer: 0
-  m_Name: StateChangeListener
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1202429411
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202429410}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5c0c87ab8b098e74f9af6f8da6158a6a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!4 &1202429412
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202429410}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1251885300 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7133514881609618808, guid: b753d9af9381a39459b07393ffab0366, type: 3}
@@ -1264,16 +1218,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13b274ed3d4b02840a39a362c737a882, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseVisitors: 3
+  baseVisitors: 5
   spawnPoint: {fileID: 746849333}
-  minSpawnDelay: 10
-  maxDayDuration: 100
-  initialGold: 1000
-  initialPopularity: 1000
+  minSpawnDelay: 5
+  maxSpawnDelay: 10
+  maxDayDuration: 90
+  initialGold: 10000
+  initialPopularity: 100
   clientType1Prefabs:
   - {fileID: 5459388358296003657, guid: ec207ddd09f1d6b42acc0182e069f7fd, type: 3}
-  - {fileID: 5459388358296003657, guid: 82aefe2cb8012374ca72f41e9981aa70, type: 3}
   - {fileID: 5459388358296003657, guid: 616fa2e573bfbbd43a8976f516862119, type: 3}
+  - {fileID: 5459388358296003657, guid: 82aefe2cb8012374ca72f41e9981aa70, type: 3}
   clientType2Prefabs:
   - {fileID: 5459388358296003657, guid: 59e4a9a361a4b6a4fb07a580bcc428df, type: 3}
   - {fileID: 5459388358296003657, guid: 837995a9238186d4982d5dfdd39ce0a8, type: 3}
@@ -1286,7 +1241,6 @@ MonoBehaviour:
   - {fileID: 5459388358296003657, guid: 9c4210a724843c443a7cffd7fddb3810, type: 3}
   - {fileID: 5459388358296003657, guid: 1abd7d43c7bc06e43b63f9fee34ab02f, type: 3}
   popularityPenalty: -10
-  healingCost: 50
   availableEmployeeData:
   - {fileID: 11400000, guid: 5c4ee3bbb8e23f242bfbad753fba934d, type: 2}
   - {fileID: 11400000, guid: 54e1cbd381a9c4240a244714061d989d, type: 2}
@@ -1310,10 +1264,29 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f813b2c007b1e664a9f57254699dbb97, type: 2}
   initialEmployees:
   - {fileID: 11400000, guid: 5c4ee3bbb8e23f242bfbad753fba934d, type: 2}
+  - {fileID: 11400000, guid: 54e1cbd381a9c4240a244714061d989d, type: 2}
+  - {fileID: 11400000, guid: 7dd6afeacaadd9b489a3a0b2003fb6a2, type: 2}
+  - {fileID: 11400000, guid: 218eb68e31bf0cb428372e5b2982c3e1, type: 2}
+  - {fileID: 11400000, guid: 1993936c11c53614ea12e047badf42a6, type: 2}
   - {fileID: 11400000, guid: eb2429a9c04981149bed9e8a6e2c5f57, type: 2}
+  - {fileID: 11400000, guid: 314f88b739893e94193d14b2e4134538, type: 2}
+  - {fileID: 11400000, guid: 0b0e2ff40ede8fa4fae9b73a6390c514, type: 2}
+  - {fileID: 11400000, guid: 56d0bc005925ca140ae9dcb4ef32693f, type: 2}
+  - {fileID: 11400000, guid: 0d863e1d22e8c8d429874472fe61c286, type: 2}
+  - {fileID: 11400000, guid: e1b4ad18df9c8204c8cf4d53b085f067, type: 2}
+  - {fileID: 11400000, guid: 89d37775a550b21469d2f0c4b434c6f3, type: 2}
+  - {fileID: 11400000, guid: 4b990efd5e11217408b99b18290076d2, type: 2}
+  - {fileID: 11400000, guid: 2fb716f005330d44884f888b5620dc0a, type: 2}
+  - {fileID: 11400000, guid: e9044801a7308c545b1508cd235130f4, type: 2}
+  - {fileID: 11400000, guid: 1293121382ed39f4eb9b4e205fa4bc5a, type: 2}
+  - {fileID: 11400000, guid: edc4f31f584cd0b4d887896b288c739d, type: 2}
+  - {fileID: 11400000, guid: 5a2a341b868edce4599de76fffe9c5f7, type: 2}
   - {fileID: 11400000, guid: 53019e6436082cf4b9ddbf6692929cc5, type: 2}
+  - {fileID: 11400000, guid: f813b2c007b1e664a9f57254699dbb97, type: 2}
   maxClientsPerDay: 40
   progressPerService: 10
+  minRemainingTimeForLastClient: 1
+  sickEmployees: []
   onStateChange:
     m_PersistentCalls:
       m_Calls: []
@@ -1765,15 +1738,14 @@ SceneRoots:
   - {fileID: 901025780}
   - {fileID: 858540107}
   - {fileID: 861487991}
+  - {fileID: 1807229841}
+  - {fileID: 337243330}
+  - {fileID: 154133316}
   - {fileID: 3625897725367487479}
   - {fileID: 1559858939181365170}
   - {fileID: 3555697582137543644}
   - {fileID: 620036485}
   - {fileID: 1168809378}
-  - {fileID: 1807229841}
-  - {fileID: 154133316}
   - {fileID: 1496911688}
   - {fileID: 713332683}
   - {fileID: 4528203929287041686}
-  - {fileID: 337243330}
-  - {fileID: 1202429412}

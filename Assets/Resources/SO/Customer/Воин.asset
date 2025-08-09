@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: "\u0412\u043E\u0438\u043D"
   m_EditorClassIdentifier: 
   clientType: 3
-  totalGold: 200
+  totalGold: 1000
   sickChance: 50
-  isSick: 0
+  isSick: 1

@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: "\u041C\u043E\u0440\u044F\u043A"
   m_EditorClassIdentifier: 
   clientType: 1
-  totalGold: 200
+  totalGold: 350
   sickChance: 100
-  isSick: 1
+  possibleSicknesses:
+  - {fileID: 11400000, guid: 720d5308755af1045abedb44874204dc, type: 2}
+  - {fileID: 11400000, guid: 7bdb6cdfc934f6546bb51fe88ce0c069, type: 2}
+  - {fileID: 11400000, guid: 9f55d6f5c440a3e48a767ad353af7906, type: 2}

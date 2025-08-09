@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: "\u0421\u0443\u043A\u043A\u0443\u0431\u0441\u043A\u0430\u044F \u0430\u043D\u0435\u043C\u0438\u044F"
   m_EditorClassIdentifier: 
   SickName: "\u0421\u0443\u043A\u043A\u0443\u0431\u0441\u043A\u0430\u044F \u0430\u043D\u0435\u043C\u0438\u044F"
-  HealingCost: 0
+  HealingCost: 300
   duration: 3
   popularityPenalty: 2
   incomePenalty: 45

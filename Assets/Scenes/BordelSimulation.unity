@@ -1222,9 +1222,9 @@ MonoBehaviour:
   spawnPoint: {fileID: 746849333}
   minSpawnDelay: 5
   maxSpawnDelay: 10
-  maxDayDuration: 120
-  initialGold: 1000
-  initialPopularity: 0
+  maxDayDuration: 90
+  initialGold: 10000
+  initialPopularity: 100
   clientType1Prefabs:
   - {fileID: 5459388358296003657, guid: ec207ddd09f1d6b42acc0182e069f7fd, type: 3}
   - {fileID: 5459388358296003657, guid: 616fa2e573bfbbd43a8976f516862119, type: 3}
@@ -1285,6 +1285,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f813b2c007b1e664a9f57254699dbb97, type: 2}
   maxClientsPerDay: 40
   progressPerService: 10
+  minRemainingTimeForLastClient: 1
+  sickEmployees: []
   onStateChange:
     m_PersistentCalls:
       m_Calls: []

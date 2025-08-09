@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewEmployeeData", menuName = "ScriptableObjects/EmployeeDataSO")]
@@ -7,6 +8,8 @@ public class EmployeeDataSO : ScriptableObject
     public string Race;
     public string BodyType;
     public char BreastSize;
+    public float StaminaMax = 10f;
+    public List<SicknessSO> PossibleSicknesses;
     public string[] BaseSkills;
     public float sickResistance;
 
@@ -25,7 +28,7 @@ public class EmployeeDataSO : ScriptableObject
         return specialRace;
     }
 
-#if UNITY_EDITOR
+
     private void OnValidate()
     {
         string[] validBodyTypes = { "Обычное", "Доска", "Милое", "Мускулистое", "Высокая", "Спортивное", "Желанное", "Великан", "Перевёртыш" };
@@ -50,5 +53,4 @@ public class EmployeeDataSO : ScriptableObject
             Debug.LogWarning($"EmployeeDataSO {employeeName}: Race ({Race}) требует SpecialRace ({raceSpecialRaceMap[Race]}), а не None.");
         }
     }
-#endif
 }

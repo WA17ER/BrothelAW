@@ -16,6 +16,18 @@ MonoBehaviour:
   Race: "\u0427\u0435\u043B\u043E\u0432\u0435\u043A"
   BodyType: "\u041E\u0431\u044B\u0447\u043D\u043E\u0435"
   BreastSize: 66
+  StaminaMax: 10
+  PossibleSicknesses:
+  - {fileID: 11400000, guid: ec18cf327a0bfd04b8a668461db024c0, type: 2}
+  - {fileID: 11400000, guid: c2e007130b6d4c3478b94295c69ae41d, type: 2}
+  - {fileID: 11400000, guid: 8617258c0f48f2044821cb5ef6ceb8d6, type: 2}
+  - {fileID: 11400000, guid: b0b2d368b3ece024e8433c0fbec4cc84, type: 2}
+  - {fileID: 11400000, guid: f13dcec2c85ddfa44b949919b5f3ab8b, type: 2}
+  - {fileID: 11400000, guid: 61497bdcba95ede4f9fa17efd07dd552, type: 2}
+  - {fileID: 11400000, guid: e9338ac909932de4891a5d3b6e16c59c, type: 2}
+  - {fileID: 11400000, guid: 7bdb6cdfc934f6546bb51fe88ce0c069, type: 2}
+  - {fileID: 11400000, guid: 9f55d6f5c440a3e48a767ad353af7906, type: 2}
+  - {fileID: 11400000, guid: 720d5308755af1045abedb44874204dc, type: 2}
   BaseSkills:
   - "\u0414\u0440\u043E\u0447\u043A\u0430"
   - "\u041C\u0438\u043D\u044C\u0435\u0442"

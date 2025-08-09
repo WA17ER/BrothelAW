@@ -10,6 +10,7 @@ public class EmployeeManager : MonoBehaviour
     private List<Employee> sickEmployees = new List<Employee>();
     private List<Employee> servicingEmployees = new List<Employee>();
     private List<Employee> tiredEmployees = new List<Employee>();
+    private List<Employee> healingEmployees = new List<Employee>();
     private List<string> availableServices = new List<string>
     {
         "Дрочка", "Миньет", "Дрочка Сиськами", "Миссионерская", "Наездница", "Амазонка", "Раком", "Стоя"
@@ -66,6 +67,7 @@ public class EmployeeManager : MonoBehaviour
     public List<Employee> SickEmployees => sickEmployees;
     public List<Employee> ServicingEmployees => servicingEmployees;
     public List<Employee> TiredEmployees => tiredEmployees;
+    public List<Employee> HealingEmployees => healingEmployees;
 
     private void Awake()
     {
@@ -86,6 +88,7 @@ public class EmployeeManager : MonoBehaviour
         sickEmployees.Clear();
         servicingEmployees.Clear();
         tiredEmployees.Clear();
+        healingEmployees.Clear();
 
         foreach (var employee in employees)
         {
@@ -107,6 +110,7 @@ public class EmployeeManager : MonoBehaviour
         allEmployees.AddRange(sickEmployees);
         allEmployees.AddRange(servicingEmployees);
         allEmployees.AddRange(tiredEmployees);
+        allEmployees.AddRange(healingEmployees);
         return allEmployees;
     }
 
@@ -116,6 +120,12 @@ public class EmployeeManager : MonoBehaviour
         sickEmployees.Remove(employee);
         servicingEmployees.Remove(employee);
         tiredEmployees.Remove(employee);
+        healingEmployees.Remove(employee);
+
+        if (newState != Employee.EmployeeState.Sick)
+        {
+            GameManager.Instance.SickEmployees.Remove(employee);
+        }
 
         switch (newState)
         {
@@ -125,6 +135,10 @@ public class EmployeeManager : MonoBehaviour
                 break;
             case Employee.EmployeeState.Sick:
                 sickEmployees.Add(employee);
+                if (!GameManager.Instance.SickEmployees.Contains(employee))
+                {
+                    GameManager.Instance.SickEmployees.Add(employee);
+                }
                 Debug.Log($"Сотрудница {employee.name} перемещена в sickEmployees.");
                 break;
             case Employee.EmployeeState.Servicing:
@@ -134,6 +148,10 @@ public class EmployeeManager : MonoBehaviour
             case Employee.EmployeeState.Tired:
                 tiredEmployees.Add(employee);
                 Debug.Log($"Сотрудница {employee.name} перемещена в tiredEmployees.");
+                break;
+            case Employee.EmployeeState.Healing:
+                healingEmployees.Add(employee);
+                Debug.Log($"Сотрудница {employee.name} перемещена в healingEmployees.");
                 break;
         }
         GameManager.Instance.onEmployeeListChanged.Invoke();

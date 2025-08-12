@@ -6,12 +6,12 @@ public class SpawnHandler : MonoBehaviour
 {
     public static SpawnHandler Instance { get; private set; }
 
-    private bool isSpawning = false;
-    private List<GameObject> clientType1Prefabs = new List<GameObject>();
-    private List<GameObject> clientType2Prefabs = new List<GameObject>();
-    private List<GameObject> clientType3Prefabs = new List<GameObject>();
-    private List<GameObject> clientType4Prefabs = new List<GameObject>();
-    private Dictionary<int, int> clientTypeCounts;
+    private List<GameObject> clientType1Prefabs;
+    private List<GameObject> clientType2Prefabs;
+    private List<GameObject> clientType3Prefabs;
+    private List<GameObject> clientType4Prefabs;
+    private Dictionary<int, int> extraVisitors;
+    private bool isSpawning;
     private Coroutine spawnCoroutine;
 
     private void Awake()
@@ -27,41 +27,40 @@ public class SpawnHandler : MonoBehaviour
         }
     }
 
-    public void Initialize(List<GameObject> clientType1Prefabs, List<GameObject> clientType2Prefabs, List<GameObject> clientType3Prefabs, List<GameObject> clientType4Prefabs, Dictionary<int, int> extraVisitors)
+    public void Initialize(List<GameObject> type1, List<GameObject> type2, List<GameObject> type3, List<GameObject> type4, Dictionary<int, int> visitors)
     {
-        this.clientType1Prefabs = clientType1Prefabs;
-        this.clientType2Prefabs = clientType2Prefabs;
-        this.clientType3Prefabs = clientType3Prefabs;
-        this.clientType4Prefabs = clientType4Prefabs;
-        this.clientTypeCounts = new Dictionary<int, int>(extraVisitors);
-
-        if (clientTypeCounts.ContainsKey(1) && clientTypeCounts[1] > 0 && clientType1Prefabs.Count < 3)
-        {
-            Debug.LogError($"SpawnHandler: Недостаточно префабов Type1 ({clientType1Prefabs.Count}), требуется минимум 3 (Моряк, Строитель, Работяга).");
-        }
-        Debug.Log($"SpawnHandler: Получено префабов: Type1 = {clientType1Prefabs.Count}, Type2 = {clientType2Prefabs.Count}, Type3 = {clientType3Prefabs.Count}, Type4 = {clientType4Prefabs.Count}");
+        clientType1Prefabs = type1;
+        clientType2Prefabs = type2;
+        clientType3Prefabs = type3;
+        clientType4Prefabs = type4;
+        extraVisitors = visitors;
+        isSpawning = false;
     }
 
     public void StartSpawning()
     {
-        if (isSpawning)
+        if (!isSpawning)
+        {
+            isSpawning = true;
+            spawnCoroutine = StartCoroutine(SpawnClients());
+        }
+        else
         {
             Debug.LogWarning("Спавн уже активен.");
-            return;
         }
-        isSpawning = true;
-        spawnCoroutine = StartCoroutine(SpawnClients());
     }
 
     public void PauseSpawning()
     {
-        isSpawning = false;
-        if (spawnCoroutine != null)
+        if (isSpawning)
         {
-            StopCoroutine(spawnCoroutine);
-            spawnCoroutine = null;
+            isSpawning = false;
+            if (spawnCoroutine != null)
+            {
+                StopCoroutine(spawnCoroutine);
+                spawnCoroutine = null;
+            }
         }
-        Debug.Log("Спавн клиентов приостановлен.");
     }
 
     public void ResumeSpawning()
@@ -70,7 +69,6 @@ public class SpawnHandler : MonoBehaviour
         {
             isSpawning = true;
             spawnCoroutine = StartCoroutine(SpawnClients());
-            Debug.Log("Спавн клиентов возобновлён.");
         }
     }
 
@@ -78,119 +76,79 @@ public class SpawnHandler : MonoBehaviour
     {
         yield return new WaitForSeconds(Random.Range(10f, 20f));
 
-        int clientsSpawned = 0;
-        int totalClientsToSpawn = Mathf.Min(GameManager.Instance.TotalClients, GameManager.Instance.MaxClientsPerDay);
-
-        // Спавн минимум одного экземпляра каждого префаба Type1, если есть клиенты Type1
-        List<GameObject> requiredPrefabs = new List<GameObject>();
-        if (clientTypeCounts.ContainsKey(1) && clientTypeCounts[1] > 0)
+        int totalClientsToSpawn = GameManager.Instance.TotalClients;
+        while (isSpawning && GameManager.Instance.ClientsSpawnedToday < totalClientsToSpawn)
         {
-            requiredPrefabs.AddRange(clientType1Prefabs);
-            // Перемешиваем requiredPrefabs для случайного порядка первых трёх клиентов
-            for (int i = requiredPrefabs.Count - 1; i > 0; i--)
+            if (!GameManager.Instance.IsDayPaused && (GameManager.Instance.MaxDayDuration - (Time.time - GameManager.Instance.DayStartTime)) > GameManager.Instance.MinRemainingTimeForLastClient)
             {
-                int j = Random.Range(0, i + 1);
-                GameObject temp = requiredPrefabs[i];
-                requiredPrefabs[i] = requiredPrefabs[j];
-                requiredPrefabs[j] = temp;
+                Debug.Log($"Перед спавном: ClientsSpawnedToday = {GameManager.Instance.ClientsSpawnedToday}, TotalClients = {totalClientsToSpawn}");
+                int clientType = GetClientType();
+                GameObject prefab = GetPrefabForType(clientType);
+                if (prefab != null)
+                {
+                    GameObject clientGO = Instantiate(prefab, GameManager.Instance.SpawnPoint.position, Quaternion.identity);
+                    ClientData clientData = clientGO.GetComponent<ClientData>();
+                    CustomerMovement movement = clientGO.GetComponent<CustomerMovement>();
+                    if (clientData != null && movement != null)
+                    {
+                        clientData.name = $"Client_{GameManager.Instance.ClientsSpawnedToday + 1}";
+                        clientData.InitializeClientPreferences();
+                        movement.SetState(CustomerMovement.ClientState.MovingToRegister);
+                        GameManager.Instance.ClientPool.Add(clientData);
+                        GameManager.Instance.ClientsSpawnedToday++;
+                        Debug.Log($"Клиент {clientData.name} типа {clientType} заспавнен.");
+                    }
+                    else
+                    {
+                        Debug.LogError($"ClientData or CustomerMovement missing on {clientGO.name}.");
+                        Destroy(clientGO);
+                    }
+                }
+                float delay = Random.Range(GameManager.Instance.MinSpawnDelay, GameManager.Instance.MaxSpawnDelay);
+                yield return new WaitForSeconds(delay);
+            }
+            else
+            {
+                yield return null;
             }
         }
-
-        while (clientsSpawned < totalClientsToSpawn && requiredPrefabs.Count > 0 && isSpawning)
-        {
-            // Проверка времени для последнего клиента
-            if (clientsSpawned == totalClientsToSpawn - 1 && (GameManager.Instance.MaxDayDuration - (Time.time - GameManager.Instance.DayStartTime) < GameManager.Instance.MinRemainingTimeForLastClient))
-            {
-                Debug.Log("Недостаточно времени для спавна последнего клиента.");
-                yield break;
-            }
-
-            GameObject clientPrefab = requiredPrefabs[0];
-            requiredPrefabs.RemoveAt(0);
-
-            GameObject clientGO = Instantiate(clientPrefab, GameManager.Instance.SpawnPoint.position, Quaternion.identity);
-            ClientData client = clientGO.GetComponent<ClientData>();
-            if (client == null)
-            {
-                Debug.LogError($"ClientData отсутствует на префабе клиента {clientGO.name}.");
-                Destroy(clientGO);
-                yield break;
-            }
-
-            client.InitializeClientPreferences();
-            GameManager.Instance.ClientPool.Add(client);
-            GameManager.Instance.ClientsSpawnedToday++;
-            clientsSpawned++;
-            clientTypeCounts[1]--;
-            Debug.Log($"Клиент {clientGO.name} создан с болезнью {(client.ActiveSick != null ? client.ActiveSick.SickName : "none")}.");
-
-            if (clientsSpawned < totalClientsToSpawn)
-            {
-                yield return new WaitForSeconds(Random.Range(GameManager.Instance.MinSpawnDelay, GameManager.Instance.MaxSpawnDelay));
-            }
-        }
-
-        // Спавн оставшихся клиентов по типам
-        while (clientsSpawned < totalClientsToSpawn && isSpawning)
-        {
-            // Проверка времени для последнего клиента
-            if (clientsSpawned == totalClientsToSpawn - 1 && (GameManager.Instance.MaxDayDuration - (Time.time - GameManager.Instance.DayStartTime) < GameManager.Instance.MinRemainingTimeForLastClient))
-            {
-                Debug.Log("Недостаточно времени для спавна последнего клиента.");
-                yield break;
-            }
-
-            List<int> availableTypes = new List<int>();
-            if (clientTypeCounts.ContainsKey(1) && clientTypeCounts[1] > 0) availableTypes.Add(1);
-            if (clientTypeCounts.ContainsKey(2) && clientTypeCounts[2] > 0) availableTypes.Add(2);
-            if (clientTypeCounts.ContainsKey(3) && clientTypeCounts[3] > 0) availableTypes.Add(3);
-            if (clientTypeCounts.ContainsKey(4) && clientTypeCounts[4] > 0) availableTypes.Add(4);
-
-            if (availableTypes.Count == 0)
-            {
-                Debug.Log("Нет доступных типов клиентов для спавна.");
-                yield break;
-            }
-
-            int selectedType = availableTypes[Random.Range(0, availableTypes.Count)];
-            List<GameObject> selectedPrefabs = null;
-            switch (selectedType)
-            {
-                case 1: selectedPrefabs = clientType1Prefabs; break;
-                case 2: selectedPrefabs = clientType2Prefabs; break;
-                case 3: selectedPrefabs = clientType3Prefabs; break;
-                case 4: selectedPrefabs = clientType4Prefabs; break;
-            }
-
-            if (selectedPrefabs == null || selectedPrefabs.Count == 0)
-            {
-                Debug.LogError($"Нет префабов для типа {selectedType}.");
-                yield break;
-            }
-
-            GameObject clientPrefab = selectedPrefabs[Random.Range(0, selectedPrefabs.Count)];
-            GameObject clientGO = Instantiate(clientPrefab, GameManager.Instance.SpawnPoint.position, Quaternion.identity);
-            ClientData client = clientGO.GetComponent<ClientData>();
-            if (client == null)
-            {
-                Debug.LogError($"ClientData отсутствует на префабе клиента {clientGO.name}.");
-                Destroy(clientGO);
-                yield break;
-            }
-
-            client.InitializeClientPreferences();
-            GameManager.Instance.ClientPool.Add(client);
-            GameManager.Instance.ClientsSpawnedToday++;
-            clientsSpawned++;
-            clientTypeCounts[selectedType]--;
-            Debug.Log($"Клиент {clientGO.name} создан с болезнью {(client.ActiveSick != null ? client.ActiveSick.SickName : "none")}.");
-
-            if (clientsSpawned < totalClientsToSpawn)
-            {
-                yield return new WaitForSeconds(Random.Range(GameManager.Instance.MinSpawnDelay, GameManager.Instance.MaxSpawnDelay));
-            }
-        }
-
         isSpawning = false;
+        Debug.Log($"Спавн остановлен: достигнут лимит {totalClientsToSpawn} клиентов.");
+    }
+
+    private int GetClientType()
+    {
+        List<int> availableTypes = new List<int>();
+        foreach (var pair in extraVisitors)
+        {
+            if (pair.Value > 0)
+            {
+                availableTypes.Add(pair.Key);
+            }
+        }
+        if (availableTypes.Count == 0)
+        {
+            return 1;
+        }
+        int selectedType = availableTypes[Random.Range(0, availableTypes.Count)];
+        extraVisitors[selectedType]--;
+        return selectedType;
+    }
+
+    private GameObject GetPrefabForType(int type)
+    {
+        switch (type)
+        {
+            case 1:
+                return clientType1Prefabs[Random.Range(0, clientType1Prefabs.Count)];
+            case 2:
+                return clientType2Prefabs[Random.Range(0, clientType2Prefabs.Count)];
+            case 3:
+                return clientType3Prefabs[Random.Range(0, clientType3Prefabs.Count)];
+            case 4:
+                return clientType4Prefabs[Random.Range(0, clientType4Prefabs.Count)];
+            default:
+                return null;
+        }
     }
 }

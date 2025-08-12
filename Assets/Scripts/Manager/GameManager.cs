@@ -8,13 +8,16 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [SerializeField] private int baseVisitors = 3;
+    [SerializeField] private int baseVisitors = 5;
     [SerializeField] private Transform spawnPoint;
+    [SerializeField] private Transform registerPoint;
+    [SerializeField] private Transform servicePoint;
+    [SerializeField] private Transform exitPoint;
     [SerializeField] private int minSpawnDelay = 1;
     [SerializeField] private int maxSpawnDelay = 5;
     [SerializeField] private float maxDayDuration = 300f;
     [SerializeField] private float initialGold = 1000f;
-    [SerializeField] private float initialPopularity = 100f;
+    [SerializeField] private float initialPopularity = 1200f;
     [SerializeField] private List<GameObject> clientType1Prefabs;
     [SerializeField] private List<GameObject> clientType2Prefabs;
     [SerializeField] private List<GameObject> clientType3Prefabs;
@@ -26,6 +29,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float progressPerService = 10f;
     [SerializeField] private float minRemainingTimeForLastClient = 30f;
     [SerializeField] private List<Employee> sickEmployees;
+    [SerializeField] private Transform[] chairs;
 
     private List<ClientData> clientPool = new List<ClientData>();
     private Dictionary<int, int> extraVisitors = new Dictionary<int, int>();
@@ -59,7 +63,15 @@ public class GameManager : MonoBehaviour
     public int MaxSpawnDelay => maxSpawnDelay;
     public float MaxDayDuration => maxDayDuration;
     public Dictionary<int, int> ExtraVisitors => extraVisitors;
-    public int TotalClients => Mathf.Min(baseVisitors + extraVisitors.Values.Sum(), maxClientsPerDay);
+    public int TotalClients
+    {
+        get
+        {
+            int total = extraVisitors.Values.Sum();
+            Debug.Log($"TotalClients calculated: {total}");
+            return Mathf.Min(total, maxClientsPerDay);
+        }
+    }
     public List<ClientData> ClientPool => clientPool;
     public int ClientsSpawnedToday { get => clientsSpawnedToday; set { clientsSpawnedToday = value; onStateChange.Invoke(); } }
     public Dictionary<int, List<GameObject>> ClientVisualModels => clientVisualModels;
@@ -68,10 +80,16 @@ public class GameManager : MonoBehaviour
     public bool IsDayPaused => isDayPaused;
     public float ProgressPerService => progressPerService;
     public Transform SpawnPoint => spawnPoint;
+    public Transform RegisterPoint => registerPoint;
+    public Transform ServicePoint => servicePoint;
+    public Transform ExitPoint => exitPoint;
+    public Transform[] Chairs => chairs;
     public int MaxClientsPerDay => maxClientsPerDay;
     public float MinRemainingTimeForLastClient => minRemainingTimeForLastClient;
     public float DayStartTime => dayStartTime;
     public List<Employee> SickEmployees => sickEmployees;
+    public float CurrentGold { get => currentGold; private set => currentGold = value; }
+    public float CurrentPopularity { get => currentPopularity; private set => currentPopularity = value; }
 
     private void Awake()
     {
@@ -96,12 +114,15 @@ public class GameManager : MonoBehaviour
             { 4, clientType4Prefabs }
         };
 
+        onStateChange.Invoke();
+    }
+
+    private void Start()
+    {
         foreach (var employeeData in initialEmployees)
         {
             AddEmployee(employeeData);
         }
-
-        onStateChange.Invoke();
     }
 
     private void OnEnable()
@@ -138,7 +159,7 @@ public class GameManager : MonoBehaviour
             extraVisitors[4] = Mathf.FloorToInt(extraVisitors[4] * scale);
         }
 
-        Debug.Log($"Подготовлено клиентов: Type1 = {extraVisitors[1]}, Type2 = {extraVisitors.GetValueOrDefault(2, 0)}, Type3 = {extraVisitors.GetValueOrDefault(3, 0)}, Type4 = {extraVisitors.GetValueOrDefault(4, 0)}");
+        Debug.Log($"Подготовлено клиентов: Type1 = {extraVisitors[1]}, Type2 = {extraVisitors[2]}, Type3 = {extraVisitors[3]}, Type4 = {extraVisitors[4]}, TotalClients = {TotalClients}");
     }
 
     [ContextMenu("Start Day")]
@@ -157,7 +178,7 @@ public class GameManager : MonoBehaviour
         clientPool.Clear();
         currentPopularity = initialPopularity;
         UpdateExtraVisitors();
-        Debug.Log($"Ожидается клиентов: всего {extraVisitors.Values.Sum()}, Тип 1: {extraVisitors[1]}, Тип 2: {extraVisitors.GetValueOrDefault(2, 0)}, Тип 3: {extraVisitors.GetValueOrDefault(3, 0)}, Тип 4: {extraVisitors.GetValueOrDefault(4, 0)}");
+        Debug.Log($"Ожидается клиентов: всего {TotalClients}, Тип 1: {extraVisitors[1]}, Тип 2: {extraVisitors[2]}, Тип 3: {extraVisitors[3]}, Тип 4: {extraVisitors[4]}");
         Debug.Log($"День {dayCount} начался.");
         if (EmployeeManager.Instance != null)
         {
@@ -318,8 +339,7 @@ public class GameManager : MonoBehaviour
     {
         ClientData client = customer.GetComponent<ClientData>();
         Debug.Log($"Клиент {client.name} начал услугу.");
-        customer.Visual.gameObject.SetActive(false);
-        StartCoroutine(ServiceTimer(15f, customer, client));
+        StartCoroutine(ServiceTimer(5f, customer, client));
     }
 
     private IEnumerator ServiceTimer(float time, CustomerMovement customer, ClientData client)
@@ -335,7 +355,6 @@ public class GameManager : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-        customer.Visual.gameObject.SetActive(true);
         Debug.Log($"Клиент {client.name} закончил услугу.");
         if (client.SpecificEmployee == null)
         {
@@ -374,7 +393,6 @@ public class GameManager : MonoBehaviour
         if (EmployeeManager.Instance != null)
         {
             EmployeeManager.Instance.EndDayUpdate();
-            activeEmployees = EmployeeManager.Instance.GetAllEmployees();
         }
         UpdateExtraVisitors();
         onStateChange.Invoke();
@@ -402,6 +420,7 @@ public class GameManager : MonoBehaviour
         Employee employee = employeeGO.AddComponent<Employee>();
         employee.SetData(employeeData);
         activeEmployees.Add(employee);
+        EmployeeManager.Instance.MoveEmployeeToList(employee);
         Debug.Log($"Сотрудница {employeeData.employeeName} добавлена в activeEmployees, состояние: {employee.GetState()}.");
         onEmployeeListChanged.Invoke();
     }
@@ -418,7 +437,7 @@ public class GameManager : MonoBehaviour
 
     private void LogGameState()
     {
-        Debug.Log($"День: {dayCount}, Золото: {currentGold}, Популярность: {currentPopularity}, Сложность: {difficultyLevel}, " +
+        Debug.Log($"День: {dayCount}, Золото: {CurrentGold}, Популярность: {CurrentPopularity}, Сложность: {DifficultyLevel}, " +
                   $"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}, " +
                   $"Больные сотрудницы: {EmployeeManager.Instance.SickEmployees.Count}, " +
                   $"Сотрудницы на лечении: {EmployeeManager.Instance.HealingEmployees.Count}, " +
@@ -455,11 +474,10 @@ public class GameManager : MonoBehaviour
         currentPopularity = PlayerPrefs.GetFloat("CurrentPopularity", initialPopularity);
         dayCount = PlayerPrefs.GetInt("DayCount", 0);
         difficultyLevel = PlayerPrefs.GetInt("DifficultyLevel", 1);
-        string employeeNames = PlayerPrefs.GetString("ActiveEmployees", "");
-        if (!string.IsNullOrEmpty(employeeNames))
+        string[] employeeNames = PlayerPrefs.GetString("ActiveEmployees", "").Split(',');
+        foreach (var name in employeeNames)
         {
-            string[] names = employeeNames.Split(',');
-            foreach (var name in names)
+            if (!string.IsNullOrEmpty(name))
             {
                 EmployeeDataSO data = Resources.Load<EmployeeDataSO>($"SO/Employee/{name}");
                 if (data != null)

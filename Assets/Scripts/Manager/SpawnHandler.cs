@@ -91,12 +91,12 @@ public class SpawnHandler : MonoBehaviour
                     CustomerMovement movement = clientGO.GetComponent<CustomerMovement>();
                     if (clientData != null && movement != null)
                     {
-                        clientData.name = $"Client_{GameManager.Instance.ClientsSpawnedToday + 1}";
-                        clientData.InitializeClientPreferences();
-                        movement.SetState(CustomerMovement.ClientState.MovingToRegister);
+                        clientData.clientName = $"Client_{GameManager.Instance.ClientsSpawnedToday + 1}";
+                        clientData.InitializeClientPreferences(clientType);
+                        clientData.SetState(ClientData.ClientState.MovingToRegister);
                         GameManager.Instance.ClientPool.Add(clientData);
                         GameManager.Instance.ClientsSpawnedToday++;
-                        Debug.Log($"Клиент {clientData.name} типа {clientType} заспавнен.");
+                        Debug.Log($"Клиент {clientData.clientName} типа {clientType} заспавнен.");
                     }
                     else
                     {
@@ -128,10 +128,12 @@ public class SpawnHandler : MonoBehaviour
         }
         if (availableTypes.Count == 0)
         {
+            Debug.Log("Нет доступных типов клиентов, возвращается тип 1.");
             return 1;
         }
         int selectedType = availableTypes[Random.Range(0, availableTypes.Count)];
         extraVisitors[selectedType]--;
+        Debug.Log($"Выбран тип клиента: {selectedType}, осталось: {extraVisitors[selectedType]}");
         return selectedType;
     }
 
@@ -148,6 +150,7 @@ public class SpawnHandler : MonoBehaviour
             case 4:
                 return clientType4Prefabs[Random.Range(0, clientType4Prefabs.Count)];
             default:
+                Debug.LogWarning($"Некорректный тип клиента: {type}, возвращается null.");
                 return null;
         }
     }

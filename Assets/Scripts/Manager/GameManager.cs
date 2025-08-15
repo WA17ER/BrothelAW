@@ -29,6 +29,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float progressPerService = 10f;
     [SerializeField] private float minRemainingTimeForLastClient = 30f;
     [SerializeField] private List<Employee> sickEmployees;
+    [SerializeField] private List<Employee> healingEmployees;
     [SerializeField] private Transform[] chairs;
 
     private List<ClientData> clientPool = new List<ClientData>();
@@ -88,8 +89,35 @@ public class GameManager : MonoBehaviour
     public float MinRemainingTimeForLastClient => minRemainingTimeForLastClient;
     public float DayStartTime => dayStartTime;
     public List<Employee> SickEmployees => sickEmployees;
+    public List<Employee> HealingEmployees => healingEmployees;
     public float CurrentGold { get => currentGold; private set => currentGold = value; }
     public float CurrentPopularity { get => currentPopularity; private set => currentPopularity = value; }
+
+    public void AddGold(float amount)
+    {
+        currentGold += amount;
+        Debug.Log($"Добавлено золото: {amount}, итого: {currentGold}");
+        onStateChange.Invoke();
+    }
+
+    public int GetClientType()
+    {
+        List<int> availableTypes = new List<int>();
+        foreach (var pair in extraVisitors)
+        {
+            if (pair.Value > 0)
+            {
+                availableTypes.Add(pair.Key);
+            }
+        }
+        if (availableTypes.Count == 0)
+        {
+            return 1;
+        }
+        int selectedType = availableTypes[Random.Range(0, availableTypes.Count)];
+        extraVisitors[selectedType]--;
+        return selectedType;
+    }
 
     private void Awake()
     {
@@ -171,6 +199,22 @@ public class GameManager : MonoBehaviour
             return;
         }
         dayCount++;
+        if (dayCount % 7 == 0)
+        {
+            foreach (var prefabs in new[] { clientType1Prefabs, clientType2Prefabs, clientType3Prefabs, clientType4Prefabs })
+            {
+                foreach (var prefab in prefabs)
+                {
+                    var clientData = prefab.GetComponent<ClientData>();
+                    if (clientData != null && clientData.ClientDataSO != null)
+                    {
+                        clientData.ClientDataSO.minGold += clientData.ClientDataSO.stepPerWeek;
+                        clientData.ClientDataSO.maxGold += clientData.ClientDataSO.stepPerWeek;
+                        Debug.Log($"День {dayCount}: Увеличены minGold и maxGold на {clientData.ClientDataSO.stepPerWeek} для префаба {prefab.name}.");
+                    }
+                }
+            }
+        }
         dayStartTime = Time.time;
         isDayActive = true;
         isDayPaused = false;
@@ -212,7 +256,7 @@ public class GameManager : MonoBehaviour
         List<Employee> copy = new List<Employee>(sickEmployees);
         foreach (var employee in copy)
         {
-            if (employee != null && employee.ActiveSick != null)
+            if (employee != null && employee.ActiveSick != null && (employee.GetState() == Employee.EmployeeState.Sick || employee.GetState() == Employee.EmployeeState.HeavySick))
             {
                 float healingCost = employee.ActiveSick.HealingCost;
                 if (currentGold >= healingCost)
@@ -220,14 +264,20 @@ public class GameManager : MonoBehaviour
                     currentGold -= healingCost;
                     totalCost += healingCost;
                     employee.Heal();
+                    healingEmployees.Add(employee);
+                    Debug.Log($"Лечение {employee.Data.employeeName} начато, стоимость: {healingCost}, длительность: {employee.ActiveSick.duration}.");
                 }
                 else
                 {
-                    Debug.Log($"Недостаточно золота для лечения {employee.name} ({healingCost} требуется, доступно {currentGold}).");
+                    Debug.Log($"Недостаточно золота для лечения {employee.Data.employeeName} ({healingCost} требуется, доступно {currentGold}).");
                 }
             }
+            else
+            {
+                Debug.LogWarning($"Сотрудница {employee?.Data.employeeName} не в состоянии Sick или HeavySick, или ActiveSick отсутствует, пропущена.");
+            }
         }
-        sickEmployees.RemoveAll(e => e == null || e.ActiveSick == null || e.GetState() == Employee.EmployeeState.Healing || e.GetState() == Employee.EmployeeState.Available);
+        sickEmployees.Clear();
         Debug.Log($"Все сотрудницы обработаны, вылечено за {totalCost} золота.");
         onStateChange.Invoke();
     }
@@ -314,23 +364,23 @@ public class GameManager : MonoBehaviour
     private void OnEmployeeAssignedHandler(ClientData client, Employee employee)
     {
         float reward = EmployeeManager.Instance.AssignEmployee(client, employee);
-        currentGold += reward;
-        Debug.Log($"Золото начислено: +{reward} для клиента {client.name} с сотрудницей {employee.name}.");
+        AddGold(reward);
+        Debug.Log($"Золото начислено: +{reward} для клиента {client.clientName} с сотрудницей {employee.Data.employeeName}.");
         onStateChange.Invoke();
     }
 
     private void OnServiceCompletedHandler(ClientData client, Employee employee)
     {
-        currentPopularity += 5f;
-        Debug.Log($"Популярность начислена: +5 для клиента {client.name} после обслуживания.");
         if (employee != null)
         {
             EmployeeManager.Instance.CompleteService(employee, client.RequestedService, client.ActiveSick != null);
         }
         else
         {
-            Debug.LogWarning($"Сотрудница не выбрана для клиента {client.name} при завершении обслуживания.");
+            Debug.LogWarning($"Сотрудница не выбрана для клиента {client.clientName} при завершении обслуживания.");
         }
+        currentPopularity += 5f;
+        Debug.Log($"Популярность начислена: +5 для клиента {client.clientName} после обслуживания.");
         clientPool.Remove(client);
         onStateChange.Invoke();
     }
@@ -338,8 +388,8 @@ public class GameManager : MonoBehaviour
     public void EnterService(CustomerMovement customer)
     {
         ClientData client = customer.GetComponent<ClientData>();
-        Debug.Log($"Клиент {client.name} начал услугу.");
-        StartCoroutine(ServiceTimer(5f, customer, client));
+        Debug.Log($"Клиент {client.clientName} начал услугу.");
+        StartCoroutine(ServiceTimer(10f, customer, client));
     }
 
     private IEnumerator ServiceTimer(float time, CustomerMovement customer, ClientData client)
@@ -355,10 +405,10 @@ public class GameManager : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-        Debug.Log($"Клиент {client.name} закончил услугу.");
+        Debug.Log($"Клиент {client.clientName} закончил услугу, сотрудница: {client.SpecificEmployee?.Data.employeeName ?? "none"}.");
         if (client.SpecificEmployee == null)
         {
-            Debug.LogWarning($"No employee assigned for client {client.name} at service completion.");
+            Debug.LogWarning($"No employee assigned for client {client.clientName} at service completion.");
         }
         onServiceCompleted.Invoke(client, client.SpecificEmployee);
         customer.ExitService();
@@ -377,6 +427,12 @@ public class GameManager : MonoBehaviour
             if (employee != null && employee.ActiveSick != null)
             {
                 employee.ProgressHealing();
+                Debug.Log($"Сотрудница {employee.Data.employeeName} лечится, осталось {employee.HealingTimeRemaining} дней.");
+                if (employee.HealingTimeRemaining <= 0)
+                {
+                    healingEmployees.Remove(employee);
+                    Debug.Log($"Сотрудница {employee.Data.employeeName} выздоровела.");
+                }
             }
         }
         Debug.Log($"Все сотрудницы обработаны, вылечено за {totalCost} золота.");
@@ -429,10 +485,9 @@ public class GameManager : MonoBehaviour
     {
         foreach (var client in clientPool)
         {
-            client.availableEmployees.Clear();
-            client.availableEmployees.AddRange(EmployeeManager.Instance.AvailableEmployees);
+            client.SelectedEmployee = null; // Clear selected employee when employee list changes
+            Debug.Log($"Синхронизировано для клиента {client.clientName}: выбранная сотрудница сброшена.");
         }
-        Debug.Log($"Синхронизировано: {clientPool.Count} клиентов, {EmployeeManager.Instance.AvailableEmployees.Count} сотрудниц.");
     }
 
     private void LogGameState()
@@ -441,6 +496,7 @@ public class GameManager : MonoBehaviour
                   $"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}, " +
                   $"Больные сотрудницы: {EmployeeManager.Instance.SickEmployees.Count}, " +
                   $"Сотрудницы на лечении: {EmployeeManager.Instance.HealingEmployees.Count}, " +
+                  $"Сотрудницы на услуге: {EmployeeManager.Instance.OnServiceEmployees.Count}, " +
                   $"Доступные сотрудницы: {EmployeeManager.Instance.AvailableEmployees.Count}");
     }
 
@@ -462,6 +518,7 @@ public class GameManager : MonoBehaviour
                 PlayerPrefs.SetInt($"EmployeeSkillProgress_{employee.Data.employeeName}_{skill.Key}", skill.Value.progress);
             }
             PlayerPrefs.SetFloat($"EmployeeStamina_{employee.Data.employeeName}", employee.StaminaCurrent);
+            PlayerPrefs.SetFloat($"EmployeeHealingTime_{employee.Data.employeeName}", employee.HealingTimeRemaining);
         }
         PlayerPrefs.Save();
         Debug.Log("Прогресс сохранён.");
@@ -494,6 +551,7 @@ public class GameManager : MonoBehaviour
                                                          PlayerPrefs.GetInt($"EmployeeSkillProgress_{name}_{skillName}", 0));
                         }
                         employee.StaminaCurrent = PlayerPrefs.GetFloat($"EmployeeStamina_{name}", employee.StaminaMax);
+                        employee.HealingTimeRemaining = PlayerPrefs.GetFloat($"EmployeeHealingTime_{name}", 0f);
                     }
                 }
             }

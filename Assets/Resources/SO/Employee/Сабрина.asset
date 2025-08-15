@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: "\u0421\u0430\u0431\u0440\u0438\u043D\u0430"
   m_EditorClassIdentifier: 
   employeeName: "\u0421\u0430\u0431\u0440\u0438\u043D\u0430"
-  Race: "\u0422\u0451\u043C\u043D\u044B\u0439 \u042D\u043B\u044C\u0444"
-  BodyType: "\u0421\u043F\u043E\u0440\u0442\u0438\u0432\u043D\u043E\u0435"
-  BreastSize: 66
+  breastSize: 1
+  bodyType: 4
+  race: 1
   StaminaMax: 10
   PossibleSicknesses:
   - {fileID: 11400000, guid: ec18cf327a0bfd04b8a668461db024c0, type: 2}
@@ -38,4 +38,3 @@ MonoBehaviour:
   - "\u0420\u0430\u043A\u043E\u043C"
   - "\u0421\u0442\u043E\u044F"
   sickResistance: 0
-  specialRace: 0

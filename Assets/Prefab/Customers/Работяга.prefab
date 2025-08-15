@@ -12,6 +12,14 @@ PrefabInstance:
       propertyPath: data
       value: 
       objectReference: {fileID: 11400000, guid: 8fdfd6727e0da7249bf46195f29bdcf4, type: 2}
+    - target: {fileID: -3677311447960566970, guid: 12ff8a433b11e1543badd8ff2630f785, type: 3}
+      propertyPath: clientName
+      value: "\u0420\u0430\u0431\u043E\u0442\u044F\u0433\u0430"
+      objectReference: {fileID: 0}
+    - target: {fileID: -3677311447960566970, guid: 12ff8a433b11e1543badd8ff2630f785, type: 3}
+      propertyPath: clientDataSO
+      value: 
+      objectReference: {fileID: 11400000, guid: 490f010722147fa4299f11af833051a0, type: 2}
     - target: {fileID: 5670056609286757899, guid: 12ff8a433b11e1543badd8ff2630f785, type: 3}
       propertyPath: m_Name
       value: "\u0420\u0430\u0431\u043E\u0442\u044F\u0433\u0430"

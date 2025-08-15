@@ -7,62 +7,83 @@ public class Employee : MonoBehaviour
     {
         Available,
         Sick,
-        Healing
+        Healing,
+        OnService,
+        HeavySick
     }
 
-    public string name;
-    public EmployeeDataSO Data { get; private set; }
-    public Dictionary<string, (int level, int progress)> Skills { get; private set; }
-    public float StaminaCurrent { get; set; }
-    public float StaminaMax { get; private set; }
-    public SicknessSO ActiveSick { get; set; }
-    private EmployeeState state;
+    private EmployeeDataSO data;
+    private Dictionary<string, (int level, int progress)> skills = new Dictionary<string, (int level, int progress)>();
+    private float staminaCurrent;
+    private SicknessSO activeSick;
+    private float healingTimeRemaining; // Время, оставшееся до выздоровления
 
-    public void SetData(EmployeeDataSO data)
+    public EmployeeDataSO Data => data;
+    public Dictionary<string, (int level, int progress)> Skills => skills;
+    public float StaminaCurrent { get => staminaCurrent; set => staminaCurrent = value; }
+    public float StaminaMax => data.StaminaMax;
+    public SicknessSO ActiveSick { get => activeSick; set => activeSick = value; }
+    public float HealingTimeRemaining { get => healingTimeRemaining; set => healingTimeRemaining = value; }
+    public EmployeeDataSO.BreastSize BreastSize => data.breastSize;
+    public EmployeeDataSO.BodyType BodyType => data.bodyType;
+    public EmployeeDataSO.Race Race => data.race;
+
+    public void SetData(EmployeeDataSO employeeData)
     {
-        Data = data;
-        name = data.employeeName;
-        Skills = new Dictionary<string, (int level, int progress)>();
+        data = employeeData;
+        staminaCurrent = data.StaminaMax;
         foreach (var skill in data.BaseSkills)
         {
-            Skills[skill] = (0, 0); // Initialize skills with level 0, progress 0
+            skills[skill] = (0, 0);
         }
-        StaminaMax = 100f; // Placeholder value
-        StaminaCurrent = StaminaMax;
-        state = EmployeeState.Available;
-        Debug.Log($"Сотрудница {name} инициализирована с навыками: {string.Join(", ", Skills.Keys)}");
-    }
-
-    public void SetState(EmployeeState newState)
-    {
-        state = newState;
-        Debug.Log($"Состояние сотрудницы {name} изменено на {state}.");
+        activeSick = null;
+        healingTimeRemaining = 0f;
     }
 
     public EmployeeState GetState()
     {
-        return state;
+        if (activeSick != null && healingTimeRemaining > 0)
+            return EmployeeState.Healing;
+        if (activeSick != null && activeSick.isUnavailable)
+            return EmployeeState.HeavySick;
+        if (activeSick != null)
+            return EmployeeState.Sick;
+        return EmployeeState.Available;
     }
 
-    public void ProgressHealing()
+    public void SetState(EmployeeState state)
     {
-        if (state == EmployeeState.Healing && ActiveSick != null)
-        {
-            // Placeholder: Assume healing completes instantly
-            ActiveSick = null;
-            SetState(EmployeeState.Available);
-            Debug.Log($"Сотрудница {name} вылечена.");
-        }
+        Debug.Log($"Сотрудница {data.employeeName} меняет состояние на {state}.");
+        EmployeeManager.Instance.MoveEmployeeToList(this);
     }
 
     public void Heal()
     {
-        if (state == EmployeeState.Sick || state == EmployeeState.Healing)
+        if (activeSick == null)
         {
-            ActiveSick = null;
+            Debug.LogWarning($"Сотрудница {data.employeeName} не больна, лечение не требуется.");
+            return;
+        }
+        healingTimeRemaining = activeSick.duration;
+        SetState(EmployeeState.Healing);
+    }
+
+    public void ProgressHealing()
+    {
+        if (activeSick == null || healingTimeRemaining <= 0)
+        {
+            activeSick = null;
+            healingTimeRemaining = 0f;
             SetState(EmployeeState.Available);
-            EmployeeManager.Instance.MoveEmployeeToList(this);
-            Debug.Log($"Сотрудница {name} полностью вылечена.");
+        }
+        else
+        {
+            healingTimeRemaining -= 1f;
+            if (healingTimeRemaining <= 0)
+            {
+                activeSick = null;
+                SetState(EmployeeState.Available);
+            }
         }
     }
 }

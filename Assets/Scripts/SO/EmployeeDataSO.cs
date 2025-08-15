@@ -1,56 +1,30 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 [CreateAssetMenu(fileName = "NewEmployeeData", menuName = "ScriptableObjects/EmployeeDataSO")]
 public class EmployeeDataSO : ScriptableObject
 {
     public string employeeName;
-    public string Race;
-    public string BodyType;
-    public char BreastSize;
+    public enum BreastSize { A, B, C, D, E, F }
+    public enum BodyType { Обычное, Доска, Милое, Высокое, Спортивное, Желанное, Великан, Перевёртыш }
+    public enum Race { Человек, Тёмный_Эльф, Эльф, Некоматана, Дриада, Они, Китсуне, Гарпия, Допельгангер, Суккуб, Ангел }
+    public BreastSize breastSize;
+    public BodyType bodyType;
+    public Race race;
     public float StaminaMax = 10f;
     public List<SicknessSO> PossibleSicknesses;
     public string[] BaseSkills;
     public float sickResistance;
 
-    [SerializeField] private SpecialRace specialRace;
-
-    public enum SpecialRace
-    {
-        None,
-        Succubus,
-        Doppelganger,
-        Angel
-    }
-
-    public SpecialRace GetSpecialRace()
-    {
-        return specialRace;
-    }
-
-
     private void OnValidate()
     {
-        string[] validBodyTypes = { "Обычное", "Доска", "Милое", "Мускулистое", "Высокая", "Спортивное", "Желанное", "Великан", "Перевёртыш" };
-        if (!string.IsNullOrEmpty(BodyType) && !System.Array.Exists(validBodyTypes, bt => bt == BodyType))
+        if (string.IsNullOrEmpty(employeeName))
         {
-            Debug.LogWarning($"EmployeeDataSO {employeeName}: BodyType ({BodyType}) должен быть одним из: {string.Join(", ", validBodyTypes)}.");
+            Debug.LogWarning($"EmployeeDataSO: employeeName не задан.");
         }
-
-        var raceSpecialRaceMap = new System.Collections.Generic.Dictionary<string, SpecialRace>
+        if (BaseSkills == null || BaseSkills.Length == 0)
         {
-            {"Суккуб", SpecialRace.Succubus},
-            {"Допельгангер", SpecialRace.Doppelganger},
-            {"Ангел", SpecialRace.Angel}
-        };
-
-        if (specialRace != SpecialRace.None && (!raceSpecialRaceMap.ContainsKey(Race) || raceSpecialRaceMap[Race] != specialRace))
-        {
-            Debug.LogWarning($"EmployeeDataSO {employeeName}: SpecialRace ({specialRace}) должен соответствовать Race ({Race}).");
-        }
-        else if (specialRace == SpecialRace.None && raceSpecialRaceMap.ContainsKey(Race))
-        {
-            Debug.LogWarning($"EmployeeDataSO {employeeName}: Race ({Race}) требует SpecialRace ({raceSpecialRaceMap[Race]}), а не None.");
+            Debug.LogWarning($"EmployeeDataSO {employeeName}: BaseSkills пуст или не задан.");
         }
     }
 }

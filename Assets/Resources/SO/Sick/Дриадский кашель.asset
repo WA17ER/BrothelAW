@@ -17,4 +17,4 @@ MonoBehaviour:
   duration: 1
   popularityPenalty: 2
   incomePenalty: 25
-  isUnavailable: 0
+  isUnavailable: 1

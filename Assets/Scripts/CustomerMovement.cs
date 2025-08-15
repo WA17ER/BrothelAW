@@ -1,32 +1,17 @@
-using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class CustomerMovement : MonoBehaviour
 {
-    public enum ClientState
-    {
-        MovingToRegister,
-        Waiting,
-        OnOccupyChair,
-        OnChair,
-        MovingToService,
-        OnService,
-        Servicing,
-        Exiting
-    }
-
     public GameObject Visual;
-    public ClientState State { get; private set; }
-    public float waitTime { get; private set; }
-    public float maxWaitTime { get; private set; } = 30f;
     private NavMeshAgent agent;
-    private Transform targetChair;
     private Transform exitPoint;
+    private ClientData clientData;
 
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
+        clientData = GetComponent<ClientData>();
         if (Visual == null)
         {
             Debug.LogWarning($"Visual not assigned for {gameObject.name}.");
@@ -38,8 +23,6 @@ public class CustomerMovement : MonoBehaviour
             agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
         }
         gameObject.layer = LayerMask.NameToLayer("Client");
-        waitTime = maxWaitTime;
-        State = ClientState.MovingToRegister;
     }
 
     private void Start()
@@ -49,86 +32,94 @@ public class CustomerMovement : MonoBehaviour
 
     private void Update()
     {
-        if (State == ClientState.Waiting || State == ClientState.OnOccupyChair)
+        if (clientData.State == ClientData.ClientState.Waiting || clientData.State == ClientData.ClientState.OnChair)
         {
-            waitTime -= Time.deltaTime;
-            if (waitTime <= 0)
+            clientData.waitTime -= Time.deltaTime;
+            if (clientData.waitTime <= 0)
             {
-                SetState(ClientState.Exiting);
+                clientData.SetState(ClientData.ClientState.Exiting);
             }
         }
 
-        switch (State)
+        switch (clientData.State)
         {
-            case ClientState.MovingToRegister:
+            case ClientData.ClientState.MovingToRegister:
                 if (GameManager.Instance.RegisterPoint != null)
                 {
                     agent.SetDestination(GameManager.Instance.RegisterPoint.position);
-                    if (Vector3.Distance(transform.position, GameManager.Instance.RegisterPoint.position) < 1f)
+                    if (Vector3.Distance(transform.position, GameManager.Instance.RegisterPoint.position) < 0.5f)
                     {
-                        SetState(ClientState.Waiting);
+                        clientData.SetState(ClientData.ClientState.Waiting);
                     }
                 }
                 else
                 {
                     Debug.LogWarning($"RegisterPoint not assigned in GameManager for {gameObject.name}.");
-                    SetState(ClientState.Waiting);
+                    clientData.SetState(ClientData.ClientState.Waiting);
                 }
                 break;
-            case ClientState.Waiting:
-            case ClientState.OnService:
+            case ClientData.ClientState.Waiting:
                 break;
-            case ClientState.OnOccupyChair:
-            case ClientState.OnChair:
-                if (targetChair != null)
+            case ClientData.ClientState.OnOccupyChair:
+                if (clientData.targetChair != null)
+                {                    
+                    agent.SetDestination(clientData.targetChair.position);
+                    if (agent.destination != clientData.targetChair.position)
+                    {
+                        Debug.LogWarning($"NavMeshAgent destination ({agent.destination}) не совпадает с позицией BottomPoint ({clientData.targetChair.position}) для клиента {clientData.clientName}.");
+                        agent.SetDestination(clientData.targetChair.position);
+                    }
+                    if (Vector3.Distance(transform.position, clientData.targetChair.position) < 0.2f)
+                    {
+                        Debug.Log($"Клиент {clientData.clientName} достиг BottomPoint стула {clientData.targetChair.parent.name} на позиции {transform.position}.");
+                        clientData.SetState(ClientData.ClientState.OnChair);
+                    }
+                }
+                else
                 {
-                    agent.SetDestination(targetChair.position);
+                    Debug.LogWarning($"Target chair not assigned for {gameObject.name}.");
+                    clientData.SetState(ClientData.ClientState.Waiting);
                 }
                 break;
-            case ClientState.MovingToService:
+            case ClientData.ClientState.OnChair:
+                break;
+            case ClientData.ClientState.MovingToService:
                 if (GameManager.Instance.ServicePoint != null)
                 {
                     agent.SetDestination(GameManager.Instance.ServicePoint.position);
-                    if (Vector3.Distance(transform.position, GameManager.Instance.ServicePoint.position) < 1f)
+                    if (Vector3.Distance(transform.position, GameManager.Instance.ServicePoint.position) < 0.5f)
                     {
                         if (Visual != null) Visual.SetActive(false);
                         if (agent != null) agent.enabled = false;
-                        SetState(ClientState.Servicing);
+                        clientData.SetState(ClientData.ClientState.Servicing);
+                        GameManager.Instance.EnterService(this);
                     }
                 }
                 else
                 {
                     Debug.LogWarning($"ServicePoint not assigned in GameManager for {gameObject.name}.");
-                    SetState(ClientState.Servicing);
+                    clientData.SetState(ClientData.ClientState.Servicing);
                 }
                 break;
-            case ClientState.Exiting:
+            case ClientData.ClientState.Servicing:
+                break;
+            case ClientData.ClientState.Exiting:
                 agent.SetDestination(exitPoint.position);
-                if (Vector3.Distance(transform.position, exitPoint.position) < 1f)
+                if (Vector3.Distance(transform.position, exitPoint.position) < 0.5f)
                 {
+                    clientData.ClearChair();
                     Destroy(gameObject);
                 }
                 break;
         }
     }
 
-    public void SetState(ClientState newState)
-    {
-        State = newState;
-        GameManager.Instance.onStateChange.Invoke();
-    }
-
-    public void SetTargetChair(Transform chair)
-    {
-        targetChair = chair;
-        SetState(ClientState.OnOccupyChair);
-    }
-
     public void ExitService()
     {
         if (Visual != null) Visual.SetActive(true);
         if (agent != null) agent.enabled = true;
-        SetState(ClientState.Exiting);
+        clientData.ClearChair();
+        clientData.SetState(ClientData.ClientState.Exiting);
     }
 
     public void Pause()
@@ -145,54 +136,5 @@ public class CustomerMovement : MonoBehaviour
         {
             agent.isStopped = false;
         }
-    }
-
-    [ContextMenu("Назначить сотрудницу")]
-    public void AssignEmployee()
-    {
-        if (State != ClientState.Waiting && State != ClientState.OnOccupyChair)
-        {
-            Debug.LogWarning($"Клиент {name} не в состоянии Waiting или OnOccupyChair для назначения сотрудницы.");
-            return;
-        }
-
-        ClientData clientData = GetComponent<ClientData>();
-        if (clientData == null)
-        {
-            Debug.LogError($"ClientData отсутствует на {gameObject.name}.");
-            return;
-        }
-
-        Employee employee = EmployeeManager.Instance.AvailableEmployees.FirstOrDefault();
-        if (employee == null)
-        {
-            Debug.LogWarning($"Нет доступных сотрудниц для клиента {name}.");
-            return;
-        }
-
-        float reward = EmployeeManager.Instance.AssignEmployee(clientData, employee);
-        GameManager.Instance.CurrentGold += reward;
-        SetState(ClientState.MovingToService);
-        Debug.Log($"Сотрудница {employee.name} назначена клиенту {name}, начислено золото: {reward}.");
-    }
-
-    [ContextMenu("Ожидать")]
-    public void SendToChair()
-    {
-        if (State != ClientState.Waiting)
-        {
-            Debug.LogWarning($"Клиент {name} не в состоянии Waiting для отправки на стул.");
-            return;
-        }
-
-        Transform chair = GameManager.Instance.Chairs.FirstOrDefault(c => c.gameObject.activeInHierarchy);
-        if (chair == null)
-        {
-            Debug.LogWarning($"Нет доступных стульев для клиента {name}.");
-            return;
-        }
-
-        SetTargetChair(chair);
-        Debug.Log($"Клиент {name} отправлен на стул.");
     }
 }

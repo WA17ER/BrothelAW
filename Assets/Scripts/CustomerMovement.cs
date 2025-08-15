@@ -32,15 +32,6 @@ public class CustomerMovement : MonoBehaviour
 
     private void Update()
     {
-        if (clientData.State == ClientData.ClientState.Waiting || clientData.State == ClientData.ClientState.OnChair)
-        {
-            clientData.waitTime -= Time.deltaTime;
-            if (clientData.waitTime <= 0)
-            {
-                clientData.SetState(ClientData.ClientState.Exiting);
-            }
-        }
-
         switch (clientData.State)
         {
             case ClientData.ClientState.MovingToRegister:
@@ -62,23 +53,19 @@ public class CustomerMovement : MonoBehaviour
                 break;
             case ClientData.ClientState.OnOccupyChair:
                 if (clientData.targetChair != null)
-                {                    
+                {
                     agent.SetDestination(clientData.targetChair.position);
-                    if (agent.destination != clientData.targetChair.position)
-                    {
-                        Debug.LogWarning($"NavMeshAgent destination ({agent.destination}) не совпадает с позицией BottomPoint ({clientData.targetChair.position}) дл€ клиента {clientData.clientName}.");
-                        agent.SetDestination(clientData.targetChair.position);
-                    }
+                    Debug.Log($" лиент {clientData.clientName} движетс€ к BottomPoint {clientData.targetChair.parent.name} на позиции {clientData.targetChair.position}");
                     if (Vector3.Distance(transform.position, clientData.targetChair.position) < 0.2f)
                     {
-                        Debug.Log($" лиент {clientData.clientName} достиг BottomPoint стула {clientData.targetChair.parent.name} на позиции {transform.position}.");
+                        Debug.Log($" лиент {clientData.clientName} достиг BottomPoint стула {clientData.targetChair.parent.name} на позиции {transform.position}");
                         clientData.SetState(ClientData.ClientState.OnChair);
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"Target chair not assigned for {gameObject.name}.");
-                    clientData.SetState(ClientData.ClientState.Waiting);
+                    Debug.LogWarning($"Target chair not assigned for {gameObject.name} in OnOccupyChair.");
+                    clientData.SetState(ClientData.ClientState.Waiting); // ¬озврат в Waiting, если стул отсутствует
                 }
                 break;
             case ClientData.ClientState.OnChair:

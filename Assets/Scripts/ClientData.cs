@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class ClientData : MonoBehaviour
 {
@@ -24,7 +25,7 @@ public class ClientData : MonoBehaviour
     [SerializeField] private ClientDataSO clientDataSO;
     public ClientDataSO ClientDataSO { get => clientDataSO; }
     public ClientState State { get; private set; }
-    public float waitTime { get; set; }
+    public float waitTime { get; set; } // Синхронизировано с ClientManager
     public int clientType { get; private set; }
     public EmployeeDataSO.BreastSize preferredBreastSize { get; private set; }
     public EmployeeDataSO.BodyType preferredBodyType { get; private set; }
@@ -35,10 +36,13 @@ public class ClientData : MonoBehaviour
     public Transform targetChair { get; private set; }
     private static List<Transform> occupiedChairs = new List<Transform>();
 
+    [SerializeField] private UnityEvent<ClientData> onStateChanged;
+    public UnityEvent<ClientData> OnStateChanged => onStateChanged;
+
     private void Awake()
     {
         State = ClientState.MovingToRegister;
-        waitTime = WaitingTime;
+        waitTime = WaitingTime; // Начальное значение
         selectedEmployee = null;
     }
 
@@ -129,28 +133,21 @@ public class ClientData : MonoBehaviour
     public void SetState(ClientState newState)
     {
         State = newState;
-        if (newState == ClientState.Waiting)
-        {
-            waitTime = WaitingTime;
-            Debug.Log($"Клиент {clientName} перешёл в Waiting.");
-        }
-        else if (newState == ClientState.OnChair)
-        {
-            waitTime = OnChairTime;
-        }
+        Debug.Log($"Состояние клиента {clientName} изменено на {newState}");
+        onStateChanged?.Invoke(this);
     }
 
     public void SetTargetChair(Transform chairBottomPoint)
     {
         targetChair = chairBottomPoint;
         Debug.Log($"Клиент {clientName} получил цель BottomPoint стула: {chairBottomPoint?.parent.name} на позиции {chairBottomPoint?.position}");
-        SetState(ClientState.OnOccupyChair);
+        SetState(ClientData.ClientState.OnOccupyChair);
     }
 
     [ContextMenu("Ожидать")]
     public void SendToChair()
     {
-        if (State != ClientState.Waiting)
+        if (State != ClientData.ClientState.Waiting)
         {
             Debug.LogWarning($"Клиент {clientName} не в состоянии Waiting для отправки на стул.");
             return;
@@ -172,14 +169,13 @@ public class ClientData : MonoBehaviour
 
         occupiedChairs.Add(bottomPoint);
         Debug.Log($"Выбран BottomPoint стула {chair.name} для клиента {clientName}.");
-        SetTargetChair(bottomPoint);
-        Debug.Log($"Клиент {clientName} отправлен на стул.");
+        SetTargetChair(bottomPoint); // Используем SetTargetChair для установки состояния OnOccupyChair
     }
 
     [ContextMenu("Назначить сотрудницу")]
     public void AssignEmployee()
     {
-        if (State != ClientState.Waiting && State != ClientState.OnChair)
+        if (State != ClientData.ClientState.Waiting && State != ClientData.ClientState.OnChair)
         {
             Debug.LogWarning($"Клиент {clientName} не в состоянии Waiting или OnChair для назначения сотрудницы.");
             return;
@@ -232,7 +228,7 @@ public class ClientData : MonoBehaviour
             GameManager.Instance.AddGold(reward);
             SpecificEmployee = selectedEmployee; // Установить SpecificEmployee для передачи в CompleteService
             ClearChair();
-            SetState(ClientState.MovingToService);
+            SetState(ClientData.ClientState.MovingToService);
             Debug.Log($"Заказ успешен: Награда = {reward}, Остаток золота клиента = {clientGold}.");
         }
         else

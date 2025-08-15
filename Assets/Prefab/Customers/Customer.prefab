@@ -200,6 +200,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dee1f0798e6d9434b8cc22a8c3a13d28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  clienName: 
-  availableEmployees:
-  - {fileID: 0}
+  clientName: 
+  selectedEmployee: {fileID: 0}
+  clientDataSO: {fileID: 0}
+  onStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  clientUI: {fileID: 0}

@@ -15,6 +15,8 @@ public class ClientManager : MonoBehaviour
 
     public List<ClientData> AllClients => allClients; // Публичный геттер для allClients
 
+    private Dictionary<ClientData, Coroutine> activeTimers = new Dictionary<ClientData, Coroutine>(); // Словарь для отслеживания корутин
+
     void Awake()
     {
         if (Instance == null)
@@ -46,21 +48,41 @@ public class ClientManager : MonoBehaviour
                     waitingClients.Add(client);
                     client.waitTime = waitingTime; // Синхронизация waitTime
                     Debug.Log($"Клиент {client.clientName} добавлен в waitingClients, время ожидания {waitingTime}");
-                    StartCoroutine(WaitingTimer(client));
+                    Coroutine timer = StartCoroutine(WaitingTimer(client));
+                    activeTimers[client] = timer;
+                    Debug.Log($"Запущен WaitingTimer для {client.clientName}");
                 }
-                else if (client.State == ClientData.ClientState.OnChair && !onChairClients.Contains(client))
+                else if (client.State == ClientData.ClientState.OnOccupyChair && waitingClients.Contains(client))
                 {
-                    waitingClients.Remove(client); // Удаляем из Waiting, если был там
+                    waitingClients.Remove(client);
+                    Debug.Log($"Клиент {client.clientName} в OnOccupyChair, удалён из waitingClients");
+                    if (activeTimers.ContainsKey(client) && activeTimers[client] != null)
+                    {
+                        StopCoroutine(activeTimers[client]);
+                        activeTimers.Remove(client);
+                        Debug.Log($"Остановлен WaitingTimer для {client.clientName}");
+                    }
+                }
+                else if (client.State == ClientData.ClientState.OnChair && !onChairClients.Contains(client) && !waitingClients.Contains(client))
+                {
                     onChairClients.Add(client);
                     client.waitTime = onChairTime; // Синхронизация waitTime
                     Debug.Log($"Клиент {client.clientName} добавлен в onChairClients, время ожидания {onChairTime}");
-                    StartCoroutine(OnChairTimer(client));
+                    Coroutine timer = StartCoroutine(OnChairTimer(client));
+                    activeTimers[client] = timer;
+                    Debug.Log($"Запущен OnChairTimer для {client.clientName}");
                 }
                 else if (client.State == ClientData.ClientState.Exiting)
                 {
                     waitingClients.Remove(client);
                     onChairClients.Remove(client);
-                    allClients.Remove(client); // Удаляем из allClients при выходе
+                    if (allClients.Contains(client)) allClients.Remove(client); // Удаляем из allClients при выходе
+                    if (activeTimers.ContainsKey(client) && activeTimers[client] != null)
+                    {
+                        StopCoroutine(activeTimers[client]);
+                        activeTimers.Remove(client); // Очистка activeTimers при уничтожении клиента
+                        Debug.Log($"Очищен activeTimers и остановлен таймер для {client.clientName} при Exiting");
+                    }
                     Debug.Log($"Клиент {client.clientName} удалён из всех списков при Exiting");
                 }
             }
@@ -70,7 +92,7 @@ public class ClientManager : MonoBehaviour
 
     public void OnClientStateChanged(ClientData client)
     {
-        Debug.Log($"Обработка события для клиента {client.clientName} с состоянием {client.State}");
+        Debug.Log($"Обработка события для клиента {client.clientName} с состоянием {client.State} через OnClientStateChanged");
         UpdateClientState(client);
     }
 
@@ -96,30 +118,57 @@ public class ClientManager : MonoBehaviour
                 waitingClients.Add(client);
                 client.waitTime = waitingTime; // Синхронизация waitTime
                 Debug.Log($"Клиент {client.clientName} добавлен в ожидание, время ожидания {waitingTime}");
-                StartCoroutine(WaitingTimer(client));
+                Coroutine timer = StartCoroutine(WaitingTimer(client));
+                activeTimers[client] = timer;
+                Debug.Log($"Запущен WaitingTimer для {client.clientName}");
+            }
+        }
+        else if (client.State == ClientData.ClientState.OnOccupyChair && waitingClients.Contains(client))
+        {
+            waitingClients.Remove(client);
+            Debug.Log($"Клиент {client.clientName} в OnOccupyChair, удалён из waitingClients через UpdateClientState");
+            if (activeTimers.ContainsKey(client) && activeTimers[client] != null)
+            {
+                StopCoroutine(activeTimers[client]);
+                activeTimers.Remove(client);
+                Debug.Log($"Остановлен WaitingTimer для {client.clientName} через UpdateClientState");
             }
         }
         else if (client.State == ClientData.ClientState.OnChair)
         {
-            if (!onChairClients.Contains(client))
+            if (!onChairClients.Contains(client) && !waitingClients.Contains(client))
             {
                 waitingClients.Remove(client); // Удаляем из Waiting, если был там
                 onChairClients.Add(client);
                 client.waitTime = onChairTime; // Синхронизация waitTime
                 Debug.Log($"Клиент {client.clientName} добавлен в ожидание на стуле, время ожидания {onChairTime}");
-                StartCoroutine(OnChairTimer(client));
+                Coroutine timer = StartCoroutine(OnChairTimer(client));
+                activeTimers[client] = timer;
+                Debug.Log($"Запущен OnChairTimer для {client.clientName}");
             }
         }
         else if (client.State == ClientData.ClientState.Servicing || client.State == ClientData.ClientState.MovingToService)
         {
             waitingClients.Remove(client);
             onChairClients.Remove(client);
+            if (activeTimers.ContainsKey(client) && activeTimers[client] != null)
+            {
+                StopCoroutine(activeTimers[client]);
+                activeTimers.Remove(client); // Очистка activeTimers при смене на Servicing
+                Debug.Log($"Остановлен таймер для {client.clientName} при Servicing");
+            }
         }
         else if (client.State == ClientData.ClientState.Exiting)
         {
             waitingClients.Remove(client);
             onChairClients.Remove(client);
             if (allClients.Contains(client)) allClients.Remove(client); // Удаляем из allClients при выходе
+            if (activeTimers.ContainsKey(client) && activeTimers[client] != null)
+            {
+                StopCoroutine(activeTimers[client]);
+                activeTimers.Remove(client); // Очистка activeTimers при уничтожении клиента
+                Debug.Log($"Очищен activeTimers и остановлен таймер для {client.clientName} при Exiting");
+            }
             Debug.Log($"Клиент {client.clientName} удалён из всех списков при Exiting");
         }
 
@@ -139,13 +188,13 @@ public class ClientManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             client.waitTime -= 1f;
-            Debug.Log($"Осталось времени для {client.clientName}: {client.waitTime} секунд");
+            Debug.Log($"Осталось времени для {client.clientName}: {client.waitTime} секунд в WaitingTimer");
         }
         if (waitingClients.Contains(client) && client.State == ClientData.ClientState.Waiting)
         {
             client.SetState(ClientData.ClientState.Exiting);
             waitingClients.Remove(client);
-            Debug.Log($"Клиент {client.clientName} перешёл в Exiting из-за истечения времени ожидания");
+            Debug.Log($"WaitingTimer завершён для {client.clientName}, клиент перешёл в Exiting");
         }
     }
 
@@ -155,7 +204,7 @@ public class ClientManager : MonoBehaviour
         {
             yield return new WaitForSeconds(1f);
             client.waitTime -= 1f;
-            Debug.Log($"Осталось времени для {client.clientName}: {client.waitTime} секунд");
+            Debug.Log($"Осталось времени для {client.clientName}: {client.waitTime} секунд в OnChairTimer");
         }
         if (onChairClients.Contains(client) && client.State == ClientData.ClientState.OnChair)
         {

@@ -1973,8 +1973,8 @@ MonoBehaviour:
   registerPoint: {fileID: 1021860398}
   servicePoint: {fileID: 579806562}
   exitPoint: {fileID: 1647000304}
-  minSpawnDelay: 45
-  maxSpawnDelay: 60
+  minSpawnDelay: 10
+  maxSpawnDelay: 20
   maxDayDuration: 300
   initialGold: 1000
   initialPopularity: 100

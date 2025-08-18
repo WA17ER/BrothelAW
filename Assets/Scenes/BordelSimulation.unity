@@ -576,7 +576,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.33333334
+  m_VoxelSize: 0.16666667
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: a44e4296219552949941c226d4ca4498, type: 2}
   m_BuildHeightMesh: 0
@@ -888,6 +888,7 @@ GameObject:
   - component: {fileID: 957685497}
   - component: {fileID: 957685496}
   - component: {fileID: 957685498}
+  - component: {fileID: 957685499}
   m_Layer: 5
   m_Name: ClientWaitingPanel
   m_TagString: Untagged
@@ -912,7 +913,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 750, y: 110}
-  m_SizeDelta: {x: 400, y: 120}
+  m_SizeDelta: {x: 500, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &957685496
 MonoBehaviour:
@@ -961,9 +962,36 @@ MonoBehaviour:
   m_GameObject: {fileID: 957685494}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f299dbcad6eb2974587464ab9c3ffcc0, type: 3}
+  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_Padding:
+    m_Left: 5
+    m_Right: 5
+    m_Top: 10
+    m_Bottom: 10
+  m_ChildAlignment: 0
+  m_Spacing: 10
+  m_ChildForceExpandWidth: 1
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
+--- !u!114 &957685499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 957685494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b412cdf50ab4dac4aa19e3e506905cc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  indicatorPrefab: {fileID: 5725693119796160968, guid: d84d55d6f3687374a89def2a1e13aa03, type: 3}
 --- !u!1 &974658935
 GameObject:
   m_ObjectHideFlags: 0
@@ -1188,7 +1216,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.33333334
+  m_VoxelSize: 0.16666667
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: 972f199a4d8301f49929495bf6f85951, type: 2}
   m_BuildHeightMesh: 1
@@ -1562,6 +1590,9 @@ MonoBehaviour:
   waitingClients: []
   onChairClients: []
   allClients: []
+  OnClientWaiting:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1001 &1385082031
 PrefabInstance:
   m_ObjectHideFlags: 0

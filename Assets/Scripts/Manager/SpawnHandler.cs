@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -93,27 +94,25 @@ public class SpawnHandler : MonoBehaviour
                     CustomerMovement movement = clientGO.GetComponent<CustomerMovement>();
                     if (clientData != null && movement != null)
                     {
-                        clientData.clientName = $"Client_{GameManager.Instance.ClientsSpawnedToday + 1}";
+                        // Сохраняем имя из префаба, добавляя индекс при дублировании
+                        string baseName = clientData.clientName;
+                        int nameIndex = 1;
+                        string uniqueName = baseName;
+                        while (GameManager.Instance.ClientPool.Any(c => c.clientName == uniqueName) ||
+                               ClientManager.Instance.AllClients.Any(c => c.clientName == uniqueName))
+                        {
+                            uniqueName = $"{baseName}_{nameIndex++}";
+                        }
+                        clientData.clientName = uniqueName;
+                        Debug.Log($"Клиент спавнен с именем {clientData.clientName} из префаба {baseName}, уникальность проверена");
+
                         clientData.InitializeClientPreferences(clientType);
                         clientData.SetState(ClientData.ClientState.MovingToRegister);
-                        Debug.Log($"Клиент {clientData.clientName} добавлен в clientPool перед OnClientSpawned");
                         GameManager.Instance.ClientPool.Add(clientData);
                         GameManager.Instance.ClientsSpawnedToday++;
-                        Debug.Log($"Клиент {clientData.clientName} спавнен, готов к вызову RegisterClient");
-                        if (ClientManager.Instance != null)
-                        {
-                            ClientManager.Instance.RegisterClient(clientData); // Прямой вызов RegisterClient
-                            Debug.Log($"RegisterClient вызван для {clientData.clientName} после добавления в clientPool");
-                        }
-                        else
-                        {
-                            Debug.LogError("ClientManager.Instance is null during registration");
-                        }
-
                         if (OnClientSpawned != null)
                         {
                             OnClientSpawned.Invoke(clientData);
-                            Debug.Log($"Событие OnClientSpawned вызвано для {clientData.clientName}");
                         }
                     }
                     else

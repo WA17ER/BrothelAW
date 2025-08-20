@@ -15,6 +15,8 @@ public class EmployeeDataSO : ScriptableObject
     public List<SicknessSO> PossibleSicknesses;
     public string[] BaseSkills;
     public float sickResistance;
+    public Sprite listIcon; // »конка дл€ списка сотрудниц в EmployeeSelectionPanel
+    public Sprite portraitIcon; // »конка дл€ панели сотрудниц в EmployeePanel
 
     private void OnValidate()
     {

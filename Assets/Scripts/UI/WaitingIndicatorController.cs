@@ -6,6 +6,7 @@ using System.Collections.Generic;
 public class WaitingIndicatorController : MonoBehaviour
 {
     [SerializeField] private GameObject indicatorPrefab; // Префаб индикатора (Image с типом Filled)
+    [SerializeField] private GameObject clientInteractionPanelPrefab; // Префаб панели взаимодействия
     private Dictionary<string, GameObject> activeIndicators = new Dictionary<string, GameObject>(); // Хранит индикаторы по client.clientName
     private ClientManager clientManager;
 
@@ -113,6 +114,14 @@ public class WaitingIndicatorController : MonoBehaviour
             Debug.LogWarning($"Компонент WaitingText не найден для индикатора клиента {client.clientName}");
         }
 
+        // Добавление компонента Button и настройка события клика
+        Button button = indicator.GetComponent<Button>();
+        if (button == null)
+        {
+            button = indicator.AddComponent<Button>();
+        }
+        button.onClick.AddListener(() => OnIndicatorClick(client));
+
         if (state == ClientData.ClientState.Waiting)
         {
             Debug.Log($"Создан индикатор ожидания для {client.clientName} в состоянии Waiting");
@@ -130,6 +139,30 @@ public class WaitingIndicatorController : MonoBehaviour
             Destroy(indicator);
             activeIndicators.Remove(clientName);
             Debug.Log($"Удалён индикатор для клиента {clientName}");
+        }
+    }
+
+    void OnIndicatorClick(ClientData client)
+    {
+        if (clientInteractionPanelPrefab != null)
+        {
+            Time.timeScale = 0; // Пауза игры
+            GameObject panelInstance = Instantiate(clientInteractionPanelPrefab, transform.parent); // Используем родителя Canvas
+            panelInstance.SetActive(true);
+            ClientInteractionController controller = panelInstance.GetComponent<ClientInteractionController>();
+            if (controller != null)
+            {
+                controller.InitializeClient(client); // Передача клиента
+                Debug.Log($"Открыта панель взаимодействия для клиента {client.clientName}, игра на паузе");
+            }
+            else
+            {
+                Debug.LogError("Компонент ClientInteractionPanelController не найден!");
+            }
+        }
+        else
+        {
+            Debug.LogError("Префаб ClientInteractionPanel не назначен!");
         }
     }
 

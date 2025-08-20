@@ -992,6 +992,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   indicatorPrefab: {fileID: 5725693119796160968, guid: d84d55d6f3687374a89def2a1e13aa03, type: 3}
+  clientInteractionPanelPrefab: {fileID: 1812882301473960951, guid: 2236634d61997c848b1f71b793ec19e5, type: 3}
 --- !u!1 &974658935
 GameObject:
   m_ObjectHideFlags: 0

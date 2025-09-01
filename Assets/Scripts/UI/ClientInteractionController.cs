@@ -1,3 +1,4 @@
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,6 +13,10 @@ public class ClientInteractionController : MonoBehaviour
     public Image employeeIcon; // Иконка сотрудницы
     public TMP_Text employeeNameText, employeeRaceText, employeeBodyText, employeeBreastText, employeeServiceText, rewardText; // Текстовые поля сотрудницы
     public Image employeePortrait; // Портрет сотрудницы
+    [SerializeField] private GameObject employeeListToSelectPanelPrefab; // Префаб панели выбора сотрудниц
+    private bool isDestroyed = false; // Флаг для проверки уничтожения
+    private Employee lastSelectedEmployee; // Для отслеживания изменений SelectedEmployee
+    private Sprite displayedEmployeeIcon; // Отдельное поле для иконки
 
     void Start()
     {
@@ -27,12 +32,28 @@ public class ClientInteractionController : MonoBehaviour
         {
             cancelButton.onClick.AddListener(OnCancelClick);
         }
+        if (employeePortrait != null && employeePortrait.GetComponent<Button>() != null)
+        {
+            employeePortrait.GetComponent<Button>().onClick.AddListener(OnEmployeePortraitClick);
+        }
         InitializePanel(); // Инициализация панели при старте
+    }
+
+    void Update()
+    {
+        if (isDestroyed) return; // Проверка на уничтожение
+        if (currentClient != null && currentClient.SelectedEmployee != lastSelectedEmployee)
+        {
+            lastSelectedEmployee = currentClient.SelectedEmployee;
+            InitializePanel(); // Обновление панели при изменении SelectedEmployee
+        }
     }
 
     public void InitializeClient(ClientData client)
     {
+        if (isDestroyed) return; // Проверка на уничтожение
         currentClient = client;
+        lastSelectedEmployee = currentClient.SelectedEmployee; // Инициализация отслеживания
         if (currentClient == null)
         {
             Debug.LogError("Клиент не передан в ClientInteractionController!");
@@ -44,39 +65,179 @@ public class ClientInteractionController : MonoBehaviour
         }
     }
 
-    void InitializePanel()
+    public void UpdateEmployeePanel(EmployeeDataSO selectedEmployee)
     {
+        if (isDestroyed) return; // Проверка на уничтожение
+        if (selectedEmployee != null && employeeIcon != null && employeeNameText != null && employeeRaceText != null &&
+            employeeBodyText != null && employeeBreastText != null && employeeServiceText != null && rewardText != null)
+        {
+            // Проверка соответствия заказа
+            bool isMatch = CheckOrderMatch(selectedEmployee);
+            if (isMatch)
+            {
+                employeeIcon.sprite = selectedEmployee.portraitIcon;
+                employeeNameText.text = "Имя: " + selectedEmployee.employeeName;
+                employeeRaceText.text = "Раса: " + selectedEmployee.race.ToString();
+                employeeBodyText.text = "Тип тела: " + selectedEmployee.bodyType.ToString();
+                employeeBreastText.text = "Размер груди: " + selectedEmployee.breastSize.ToString();
+                employeeServiceText.text = "Услуга (уровень): " + (selectedEmployee.BaseSkills.Length > 0 ? selectedEmployee.BaseSkills[0] + " (1)" : "None");
+                rewardText.text = "Стоимость: " + CalculateReward(selectedEmployee);
+                // Инициализация или обновление SpecificEmployee
+                if (currentClient.SpecificEmployee == null)
+                {
+                    currentClient.SpecificEmployee = new Employee();
+                    currentClient.SpecificEmployee.SetData(selectedEmployee); // Установка данных через метод
+                    EmployeeManager.Instance.MoveEmployeeToList(currentClient.SpecificEmployee); // Обновление состояния
+                }
+                else
+                {
+                    currentClient.SpecificEmployee.SetData(selectedEmployee); // Обновление данных
+                }
+                Debug.Log($"Панель сотрудницы обновлена для {selectedEmployee.employeeName}, соответствие заказа подтверждено");
+            }
+            else
+            {
+                Debug.LogWarning($"Сотрудница {selectedEmployee.employeeName} не соответствует заказу клиента {currentClient.clientName}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Не удалось обновить панель сотрудницы: данные или элементы null!");
+        }
+    }
+
+    public bool CheckOrderMatch(EmployeeDataSO employee) // Сделан публичным
+    {
+        if (isDestroyed || currentClient == null || employee == null) return false;
+
+        // Проверка соответствия параметров заказа с пропуском null-полей
+        bool raceMatch = currentClient.clientType == 3 && currentClient.preferredRace != EmployeeDataSO.Race.None ? currentClient.preferredRace == employee.race : true;
+        bool bodyMatch = currentClient.clientType == 2 && currentClient.preferredBodyType != EmployeeDataSO.BodyType.None ? currentClient.preferredBodyType == employee.bodyType : true;
+        bool breastMatch = currentClient.clientType == 2 && currentClient.preferredBreastSize != EmployeeDataSO.BreastSize.None ? currentClient.preferredBreastSize == employee.breastSize : true;
+        bool serviceMatch = currentClient.RequestedService == null ||
+                           (employee.BaseSkills != null && employee.BaseSkills.Length > 0 && employee.BaseSkills.Contains(currentClient.RequestedService));
+        Debug.Log($"Проверка расы: клиент {currentClient.clientName} ожидает {currentClient.preferredRace}, сотрудница {employee.race}, совпадение: {raceMatch}");
+        Debug.Log($"Проверка типа тела: клиент {currentClient.clientName} ожидает {currentClient.preferredBodyType}, сотрудница {employee.bodyType}, совпадение: {bodyMatch}");
+        Debug.Log($"Проверка размера груди: клиент {currentClient.clientName} ожидает {currentClient.preferredBreastSize}, сотрудница {employee.breastSize}, совпадение: {breastMatch}");
+        Debug.Log($"Проверка услуги: клиент {currentClient.clientName} ожидает {currentClient.RequestedService}, сотрудница {string.Join(", ", employee.BaseSkills)}, совпадение: {serviceMatch}");
+
+        bool isMatch = raceMatch && bodyMatch && breastMatch && serviceMatch;
+        if (!isMatch)
+        {
+            Debug.LogWarning($"Несоответствие заказа для клиента {currentClient.clientName}: раса {raceMatch}, тип тела {bodyMatch}, размер груди {breastMatch}, услуга {serviceMatch}");
+        }
+        return isMatch;
+    }
+
+    private float CalculateReward(EmployeeDataSO employee)
+    {
+        if (isDestroyed || employee == null || currentClient == null) return 0f;
+
+        // Простая заглушка для расчёта награды (замените на реальную логику)
+        float reward = 100f; // Базовая награда
+        reward *= currentClient.clientType; // Умножаем на тип клиента
+        return reward;
+    }
+
+    public void InitializePanel() // Сделан публичным
+    {
+        if (isDestroyed) return; // Проверка на уничтожение
         if (currentClient != null && employeeIcon != null && expectedEmployeeText != null && expectedRaceText != null &&
             expectedBodyText != null && expectedBreastText != null && desiredServiceText != null && goldText != null &&
             employeePortrait != null && employeeNameText != null && employeeRaceText != null &&
             employeeBodyText != null && employeeBreastText != null && employeeServiceText != null && rewardText != null)
         {
-            // Обновление текстовых полей клиента
-            expectedEmployeeText.text = "Ожидаемая сотрудница: " + (currentClient.clientType == 4 && currentClient.SpecificEmployee != null ? currentClient.SpecificEmployee.Data.employeeName : "");
-            expectedRaceText.text = "Ожидаемая раса: " + (currentClient.clientType == 3 ? (currentClient.preferredRace != null ? currentClient.preferredRace.ToString() : "") : "");
-            expectedBodyText.text = "Ожидаемое тело: " + (currentClient.preferredBodyType != null ? currentClient.preferredBodyType.ToString() : "");
-            expectedBreastText.text = "Ожидаемый размер груди: " + (currentClient.preferredBreastSize != null ? currentClient.preferredBreastSize.ToString() : "");
-            desiredServiceText.text = "Желаемая услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
+            // Обновление текстовых полей клиента с учётом типа
+            if (currentClient.clientType == 1)
+            {
+                expectedEmployeeText.text = "Сотрудница: None";
+                expectedRaceText.text = "Раса: None";
+                expectedBodyText.text = "Тело: None";
+                expectedBreastText.text = "Размер груди: None";
+                desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
+            }
+            else if (currentClient.clientType == 2)
+            {
+                // Тип 2: Один из двух параметров (BodyType или BreastSize), остальные None
+                bool useBodyType = currentClient.preferredBodyType != EmployeeDataSO.BodyType.None;
+                expectedEmployeeText.text = "Сотрудница: None";
+                expectedRaceText.text = "Раса: None";
+                expectedBodyText.text = useBodyType && currentClient.preferredBodyType != EmployeeDataSO.BodyType.None ? "Тело: " + currentClient.preferredBodyType.ToString() : "Тело: None";
+                expectedBreastText.text = !useBodyType && currentClient.preferredBreastSize != EmployeeDataSO.BreastSize.None ? "Размер груди: " + currentClient.preferredBreastSize.ToString() : "Размер груди: None";
+                desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
+            }
+            else if (currentClient.clientType == 3)
+            {
+                // Тип 3: Только Race, остальные None
+                expectedEmployeeText.text = "Сотрудница: None";
+                expectedRaceText.text = currentClient.preferredRace != EmployeeDataSO.Race.None ? "Раса: " + currentClient.preferredRace.ToString() : "Раса: None";
+                expectedBodyText.text = "Тело: None";
+                expectedBreastText.text = "Размер груди: None";
+                desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
+            }
+            else if (currentClient.clientType == 4)
+            {
+                // Тип 4: Все поля (кроме DesiredServiceText) заполняются данными сотрудницы, если выбрана
+                if (currentClient.SelectedEmployee != null && currentClient.SelectedEmployee.Data != null)
+                {
+                    EmployeeDataSO employeeData = currentClient.SelectedEmployee.Data;
+                    expectedEmployeeText.text = "Сотрудница: " + employeeData.employeeName;
+                    expectedRaceText.text = "Раса: " + employeeData.race.ToString();
+                    expectedBodyText.text = "Тело: " + employeeData.bodyType.ToString();
+                    expectedBreastText.text = "Размер груди: " + employeeData.breastSize.ToString();
+                }
+                else
+                {
+                    expectedEmployeeText.text = "Сотрудница: None";
+                    expectedRaceText.text = "Раса: None";
+                    expectedBodyText.text = "Тело: None";
+                    expectedBreastText.text = "Размер груди: None";
+                }
+                desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
+            }
             goldText.text = "Золото: " + currentClient.clientGold;
 
-            // Установка дефолтного спрайта для иконки клиента
-            if (employeeIcon != null && currentClient.SpecificEmployee == null)
+            // Обновление EmployeeIcon на основе wantsSpecificEmployee
+            if (currentClient.wantsSpecificEmployee && currentClient.SelectedEmployee != null && currentClient.SelectedEmployee.Data != null)
             {
-                employeeIcon.sprite = Resources.Load<Sprite>("NoData_Square"); // Дефолтный спрайт
+                displayedEmployeeIcon = currentClient.SelectedEmployee.Data.portraitIcon;
             }
-
-            // Обновление текстовых полей сотрудницы (дефолтные значения)
-            employeeNameText.text = "Имя: None";
-            employeeRaceText.text = "Раса: None";
-            employeeBodyText.text = "Тип тела: None";
-            employeeBreastText.text = "Размер груди: None";
-            employeeServiceText.text = "Услуга (уровень): None";
-            rewardText.text = "Стоимость: None";
-
-            // Установка дефолтного спрайта для портрета сотрудницы
-            if (employeePortrait != null)
+            else
             {
-                employeePortrait.sprite = Resources.Load<Sprite>("NoData_Square"); // Дефолтный спрайт
+                displayedEmployeeIcon = Resources.Load<Sprite>("NoData_Square"); // Дефолтная иконка
+            }
+            employeeIcon.sprite = displayedEmployeeIcon; // Установка иконки
+
+            // Заполнение EmployeePanel данными из SelectedEmployee, если он задан
+            if (currentClient.SelectedEmployee != null && currentClient.SelectedEmployee.Data != null)
+            {
+                EmployeeDataSO employeeData = currentClient.SelectedEmployee.Data;
+                employeePortrait.sprite = employeeData.portraitIcon;
+                employeeNameText.text = "Имя: " + employeeData.employeeName;
+                employeeRaceText.text = "Раса: " + employeeData.race.ToString();
+                employeeBodyText.text = "Тип тела: " + employeeData.bodyType.ToString();
+                employeeBreastText.text = "Размер груди: " + employeeData.breastSize.ToString();
+                // Проверка наличия RequestedService в Skills
+                if (currentClient.SelectedEmployee.Skills.ContainsKey(currentClient.RequestedService))
+                {
+                    int skillLevel = currentClient.SelectedEmployee.Skills[currentClient.RequestedService].level;
+                    employeeServiceText.text = "Услуга (уровень): " + currentClient.RequestedService + " (" + skillLevel + ")";
+                }
+                else
+                {
+                    employeeServiceText.text = "Услуга (уровень): None";
+                }
+                rewardText.text = "Стоимость: " + CalculateReward(employeeData);
+            }
+            else
+            {
+                employeePortrait.sprite = Resources.Load<Sprite>("NoData_Square");
+                employeeNameText.text = "Имя: None";
+                employeeRaceText.text = "Раса: None";
+                employeeBodyText.text = "Тип тела: None";
+                employeeBreastText.text = "Размер груди: None";
+                employeeServiceText.text = "Услуга (уровень): None";
+                rewardText.text = "Стоимость: None";
             }
 
             Debug.Log($"Панель клиента {currentClient.clientName} и сотрудницы обновлена");
@@ -89,39 +250,100 @@ public class ClientInteractionController : MonoBehaviour
 
     void OnWaitClick()
     {
+        if (isDestroyed) return; // Проверка на уничтожение
         if (currentClient != null)
         {
             currentClient.SendToChair();
-            Time.timeScale = 1; // Снятие паузы
-            gameObject.SetActive(false); // Закрытие панели
-            Debug.Log($"Кнопка Ожидать нажата для клиента {currentClient.clientName}, клиент отправлен на стул");
+            Time.timeScale = 1; // Снятие паузы перед уничтожением
+            Destroy(gameObject); // Уничтожение панели
+            Debug.Log($"Кнопка Ожидать нажата для клиента {currentClient.clientName}, клиент отправлен на стул, панель уничтожена");
         }
     }
 
     void OnAssignClick()
     {
-        if (currentClient != null)
+        if (isDestroyed) return; // Проверка на уничтожение
+        if (currentClient != null && currentClient.SelectedEmployee != null)
         {
-            // Временная реализация с выбором сотрудницы из Inspector
-            currentClient.AssignEmployee(); // Пока без конкретной сотрудницы
-            Time.timeScale = 1; // Снятие паузы
-            gameObject.SetActive(false); // Закрытие панели
-            Debug.Log($"Кнопка Назначить сотрудницу нажата для клиента {currentClient.clientName}, клиент отправлен на услугу");
+            // Проверка соответствия сотрудницы заказу
+            EmployeeDataSO employeeData = currentClient.SelectedEmployee.Data;
+            bool isMatch = CheckOrderMatch(employeeData);
+            float reward = CalculateReward(employeeData);
+            if (isMatch && currentClient.clientGold >= reward)
+            {
+                currentClient.AssignEmployee(); // Отправка клиента на услугу
+                Time.timeScale = 1; // Снятие паузы перед уничтожением
+                Destroy(gameObject); // Уничтожение панели
+                Debug.Log($"Кнопка Назначить сотрудницу нажата для клиента {currentClient.clientName}, клиент отправлен на услугу, панель уничтожена");
+            }
+            else
+            {
+                currentClient.SetState(ClientData.ClientState.Exiting); // Клиент уходит
+                Time.timeScale = 1; // Снятие паузы перед уничтожением
+                Destroy(gameObject); // Уничтожение панели
+                if (!isMatch)
+                {
+                    Debug.LogWarning($"Сотрудница {employeeData.employeeName} не соответствует заказу, клиент {currentClient.clientName} уходит");
+                }
+                else
+                {
+                    Debug.LogWarning($"У клиента {currentClient.clientName} недостаточно золота. Требуется: {reward}, доступно: {currentClient.clientGold}, клиент уходит");
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Сотрудница не выбрана для назначения!");
         }
     }
 
     void OnCancelClick()
     {
-        Time.timeScale = 1; // Снятие паузы
-        gameObject.SetActive(false); // Закрытие панели
-        Debug.Log($"Кнопка Отмена нажата, панель закрыта для клиента {currentClient?.clientName ?? "неизвестного клиента"}");
+        if (isDestroyed) return; // Проверка на уничтожение
+        if (currentClient != null)
+        {
+            Time.timeScale = 1; // Снятие паузы перед уничтожением
+            Destroy(gameObject); // Уничтожение панели
+            Debug.Log($"Кнопка Отмена нажата, панель уничтожена для клиента {currentClient.clientName}");
+        }
+    }
+
+    void OnEmployeePortraitClick()
+    {
+        if (isDestroyed) return; // Проверка на уничтожение
+        if (employeeListToSelectPanelPrefab != null)
+        {
+            Time.timeScale = 0; // Пауза игры
+            GameObject panelInstance = Instantiate(employeeListToSelectPanelPrefab, transform.parent); // Используем родителя Canvas
+            panelInstance.SetActive(true);
+            EmployeeListControlPanel controller = panelInstance.GetComponent<EmployeeListControlPanel>();
+            if (controller != null)
+            {
+                controller.Initialize(currentClient, this); // Передача клиента и контроллера
+                Debug.Log($"Открыта панель выбора сотрудниц для клиента {currentClient.clientName}");
+            }
+            else
+            {
+                Debug.LogError("Компонент EmployeeListControlPanel не найден!");
+            }
+        }
+        else
+        {
+            Debug.LogError("Префаб EmployeeListToSelectPanel не назначен!");
+        }
     }
 
     void OnDestroy()
     {
+        isDestroyed = true; // Установка флага уничтожения
         // Очистка событий для избежания утечек
         if (waitButton != null) waitButton.onClick.RemoveAllListeners();
         if (assignButton != null) assignButton.onClick.RemoveAllListeners();
         if (cancelButton != null) cancelButton.onClick.RemoveAllListeners();
+        if (employeePortrait != null && employeePortrait.GetComponent<Button>() != null)
+        {
+            employeePortrait.GetComponent<Button>().onClick.RemoveAllListeners();
+        }
+        Debug.Log("ClientInteractionController уничтожен, все слушатели событий очищены");
     }
 }

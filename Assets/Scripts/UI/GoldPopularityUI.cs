@@ -16,8 +16,8 @@ public class GoldPopularityUI : MonoBehaviour
     void UpdateUI()
     {
         if (goldText != null)
-            goldText.text = "Золото: " + GameManager.Instance.CurrentGold;
+            goldText.text = "Gold: " + GameManager.Instance.CurrentGold;
         if (popularityText != null)
-            popularityText.text = "Популярность: " + GameManager.Instance.CurrentPopularity;
+            popularityText.text = "Populyarity: " + GameManager.Instance.CurrentPopularity;
     }
 }

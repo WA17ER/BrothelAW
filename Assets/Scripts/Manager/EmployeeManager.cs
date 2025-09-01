@@ -4,15 +4,13 @@ using UnityEngine;
 public class EmployeeManager : MonoBehaviour
 {
     public static EmployeeManager Instance { get; private set; }
-
     [SerializeField] private EmployeeBonusesSO bonuses;
     [SerializeField] private List<string> availableServices;
     private List<Employee> availableEmployees = new List<Employee>();
     private List<Employee> sickEmployees = new List<Employee>();
     private List<Employee> healingEmployees = new List<Employee>();
     private List<Employee> onServiceEmployees = new List<Employee>();
-
-    public List<Employee> AvailableEmployees => availableEmployees;
+    public List<Employee> AvailableEmployees => availableEmployees; // Публичный геттер
     public List<Employee> SickEmployees => sickEmployees;
     public List<Employee> HealingEmployees => healingEmployees;
     public List<Employee> OnServiceEmployees => onServiceEmployees;
@@ -24,9 +22,51 @@ public class EmployeeManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        else
+        else if (Instance != this)
         {
+            SyncWithGameState();
             Destroy(gameObject);
+            return;
+        }
+        InitializeEmployees();
+    }
+
+    private void InitializeEmployees()
+    {
+        if (availableEmployees.Count == 0 && sickEmployees.Count == 0 && healingEmployees.Count == 0 && onServiceEmployees.Count == 0)
+        {
+            SyncWithGameState();
+            // Логирование всех имён
+            if (availableEmployees.Count > 0)
+            {
+                string names = "Список сотрудниц в EmployeeManager: ";
+                foreach (var employee in availableEmployees)
+                {
+                    names += employee.Data.employeeName + ", ";
+                }
+                Debug.Log(names.TrimEnd(',', ' '));
+            }
+            else
+            {
+                Debug.Log("Список сотрудниц в EmployeeManager пуст.");
+            }
+        }
+    }
+
+    public void SyncWithGameState()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            List<Employee> stateEmployees = GameStateManager.Instance.Employees;
+            availableEmployees.Clear();
+            sickEmployees.Clear();
+            healingEmployees.Clear();
+            onServiceEmployees.Clear();
+            foreach (var employee in stateEmployees)
+            {
+                MoveEmployeeToList(employee);
+            }
+            Debug.Log("Синхронизация EmployeeManager с GameStateManager завершена.");
         }
     }
 
@@ -44,7 +84,6 @@ public class EmployeeManager : MonoBehaviour
         sickEmployees.Remove(employee);
         healingEmployees.Remove(employee);
         onServiceEmployees.Remove(employee);
-
         switch (employee.GetState())
         {
             case Employee.EmployeeState.Available:
@@ -83,7 +122,6 @@ public class EmployeeManager : MonoBehaviour
             Debug.LogWarning($"Сотрудница {employee.Data.employeeName} не доступна для назначения.");
             return 0f;
         }
-
         float reward = CalculateReward(client, employee);
         employee.StaminaCurrent -= 1f;
         employee.SetState(Employee.EmployeeState.OnService);
@@ -97,14 +135,12 @@ public class EmployeeManager : MonoBehaviour
             Debug.LogWarning("Сотрудница null при завершении услуги.");
             return;
         }
-
         ClientData client = GameManager.Instance.ClientPool.Find(c => c.SpecificEmployee == employee);
         if (client == null)
         {
             Debug.LogWarning($"Клиент не найден для сотрудницы {employee.Data.employeeName} при завершении услуги.");
             return;
         }
-
         Debug.Log($"Проверка болезни клиента {client.clientName}: Болезнь = {client.ActiveSick?.SickName ?? "none"}");
         if (client.ActiveSick != null)
         {
@@ -126,7 +162,6 @@ public class EmployeeManager : MonoBehaviour
         {
             employee.SetState(Employee.EmployeeState.Available);
         }
-
         if (employee.Skills.ContainsKey(service))
         {
             var skill = employee.Skills[service];
@@ -170,9 +205,7 @@ public class EmployeeManager : MonoBehaviour
         float clientTypeMultiplier = client.clientType;
         float skillLevel = employee.Skills.ContainsKey(client.RequestedService) ? employee.Skills[client.RequestedService].level : 0;
         bool isSpecialRace = employee.Race == EmployeeDataSO.Race.Допельгангер || employee.Race == EmployeeDataSO.Race.Суккуб || employee.Race == EmployeeDataSO.Race.Ангел;
-
         float reward = 100f * clientTypeMultiplier * (1f + skillLevel * 0.1f);
-
         if (!isSpecialRace)
         {
             foreach (var bonus in bonuses.breastSizeBonuses)
@@ -200,7 +233,6 @@ public class EmployeeManager : MonoBehaviour
                 break;
             }
         }
-
         Debug.Log($"Рассчитана награда для клиента {client.clientName} с сотрудницей {employee.Data.employeeName}: {reward}");
         return reward;
     }

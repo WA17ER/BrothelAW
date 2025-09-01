@@ -786,7 +786,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -42.3053, y: -39.28344}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1620, y: 1024}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1757407011186013613
@@ -855,8 +855,9 @@ MonoBehaviour:
   employeeBodyText: {fileID: 215911432140535052}
   employeeBreastText: {fileID: 2373023623115132457}
   employeeServiceText: {fileID: 3849521812889284602}
-  rewardText: {fileID: 3849521812889284602}
-  employeePortrait: {fileID: 0}
+  rewardText: {fileID: 3373546309863223408}
+  employeePortrait: {fileID: 295716309488673706}
+  employeeListToSelectPanelPrefab: {fileID: 8435010997605880929, guid: 5bcfa44bebb51644882fa6cfa12ed906, type: 3}
 --- !u!1 &2293236248810699561
 GameObject:
   m_ObjectHideFlags: 0

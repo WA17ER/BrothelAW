@@ -18,8 +18,8 @@ public class CustomerMovement : MonoBehaviour
         }
         if (agent != null)
         {
-            agent.radius = 0.5f;
-            agent.stoppingDistance = 0.5f;
+            agent.radius = 0.3f; // Уменьшен радиус агента для лучшей навигации
+            agent.stoppingDistance = 0.3f; // Увеличен stoppingDistance для учета отклонений
             agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
         }
         gameObject.layer = LayerMask.NameToLayer("Client");
@@ -32,22 +32,13 @@ public class CustomerMovement : MonoBehaviour
 
     private void Update()
     {
-        if (clientData.State == ClientData.ClientState.Waiting || clientData.State == ClientData.ClientState.OnChair)
-        {
-            clientData.waitTime -= Time.deltaTime;
-            if (clientData.waitTime <= 0)
-            {
-                clientData.SetState(ClientData.ClientState.Exiting);
-            }
-        }
-
         switch (clientData.State)
         {
             case ClientData.ClientState.MovingToRegister:
                 if (GameManager.Instance.RegisterPoint != null)
                 {
                     agent.SetDestination(GameManager.Instance.RegisterPoint.position);
-                    if (Vector3.Distance(transform.position, GameManager.Instance.RegisterPoint.position) < 0.5f)
+                    if (IsPositionReached(GameManager.Instance.RegisterPoint.position))
                     {
                         clientData.SetState(ClientData.ClientState.Waiting);
                     }
@@ -62,17 +53,17 @@ public class CustomerMovement : MonoBehaviour
                 break;
             case ClientData.ClientState.OnOccupyChair:
                 if (clientData.targetChair != null)
-                {                    
+                {
                     agent.SetDestination(clientData.targetChair.position);
-                    if (agent.destination != clientData.targetChair.position)
+                    if (IsPositionReached(clientData.targetChair.position))
                     {
-                        Debug.LogWarning($"NavMeshAgent destination ({agent.destination}) не совпадает с позицией BottomPoint ({clientData.targetChair.position}) для клиента {clientData.clientName}.");
-                        agent.SetDestination(clientData.targetChair.position);
-                    }
-                    if (Vector3.Distance(transform.position, clientData.targetChair.position) < 0.2f)
-                    {
-                        Debug.Log($"Клиент {clientData.clientName} достиг BottomPoint стула {clientData.targetChair.parent.name} на позиции {transform.position}.");
+                        Debug.Log($"Клиент {clientData.clientName} достиг targetChair {clientData.targetChair.parent.name} на позиции {transform.position}");
                         clientData.SetState(ClientData.ClientState.OnChair);
+                    }
+                    else if (Vector3.Distance(new Vector3(agent.destination.x, 0, agent.destination.z),
+                                              new Vector3(clientData.targetChair.position.x, 0, clientData.targetChair.position.z)) > 0.5f)
+                    {
+                        Debug.LogWarning($"Значительное расхождение в X/Z для клиента {clientData.clientName}, destination: {agent.destination}, target: {clientData.targetChair.position}");
                     }
                 }
                 else
@@ -87,7 +78,7 @@ public class CustomerMovement : MonoBehaviour
                 if (GameManager.Instance.ServicePoint != null)
                 {
                     agent.SetDestination(GameManager.Instance.ServicePoint.position);
-                    if (Vector3.Distance(transform.position, GameManager.Instance.ServicePoint.position) < 0.5f)
+                    if (IsPositionReached(GameManager.Instance.ServicePoint.position))
                     {
                         if (Visual != null) Visual.SetActive(false);
                         if (agent != null) agent.enabled = false;
@@ -105,13 +96,21 @@ public class CustomerMovement : MonoBehaviour
                 break;
             case ClientData.ClientState.Exiting:
                 agent.SetDestination(exitPoint.position);
-                if (Vector3.Distance(transform.position, exitPoint.position) < 0.5f)
+                if (IsPositionReached(exitPoint.position))
                 {
                     clientData.ClearChair();
                     Destroy(gameObject);
                 }
                 break;
         }
+    }
+
+    private bool IsPositionReached(Vector3 targetPosition)
+    {
+        Vector3 agentPosition = transform.position;
+        Vector3 target2D = new Vector3(targetPosition.x, 0, targetPosition.z);
+        Vector3 agent2D = new Vector3(agentPosition.x, 0, agentPosition.z);
+        return Vector3.Distance(agent2D, target2D) < agent.stoppingDistance;
     }
 
     public void ExitService()

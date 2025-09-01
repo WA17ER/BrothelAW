@@ -124,7 +124,7 @@ public class GameManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(gameObject); // Сохранение между сценами (опционально)
         }
         else
         {
@@ -142,6 +142,7 @@ public class GameManager : MonoBehaviour
             { 4, clientType4Prefabs }
         };
 
+        onStateChange = new UnityEvent(); // Инициализация события
         onStateChange.Invoke();
     }
 
@@ -230,7 +231,29 @@ public class GameManager : MonoBehaviour
         }
         if (SpawnHandler.Instance != null)
         {
+            Debug.Log($"clientPool перед инициализацией: {string.Join(", ", clientPool.Select(c => c?.clientName ?? "null"))}");
             SpawnHandler.Instance.Initialize(clientType1Prefabs, clientType2Prefabs, clientType3Prefabs, clientType4Prefabs, extraVisitors);
+            foreach (ClientData client in clientPool)
+            {
+                client.OnStateChanged.AddListener(ClientManager.Instance.OnClientStateChanged);
+            }
+            SpawnHandler.Instance.OnClientSpawned.AddListener((client) =>
+            {
+                Debug.Log($"Обработчик OnClientSpawned получил клиента {client.clientName}, регистрация начата");
+                Debug.Log($"clientPool перед проверкой: {string.Join(", ", clientPool.Select(c => c?.clientName ?? "null"))}");
+                if (!ClientManager.Instance.AllClients.Contains(client)) // Изменено условие
+                {
+                    Debug.Log($"Условие !allClients.Contains(client) сработало для {client.clientName}");
+                    clientPool.Add(client);
+                    client.OnStateChanged.AddListener(ClientManager.Instance.OnClientStateChanged);
+                    Debug.Log($"Попытка вызвать RegisterClient для клиента {client.clientName}, Instance: {ClientManager.Instance != null}");
+                    ClientManager.Instance.RegisterClient(client); // Вызов регистрации
+                }
+                else
+                {
+                    Debug.Log($"Клиент {client.clientName} уже в allClients, пропущен");
+                }
+            });
         }
         else
         {
@@ -241,6 +264,12 @@ public class GameManager : MonoBehaviour
             SpawnHandler.Instance.StartSpawning();
         }
         dayCycleCoroutine = StartCoroutine(DayCycle());
+    }
+
+    private void OnClientStateChanged(ClientData client)
+    {
+        Debug.Log($"Событие состояния для клиента {client.clientName}: {client.State}");
+        onStateChange.Invoke();
     }
 
     [ContextMenu("Heal All Employees")]
@@ -421,7 +450,7 @@ public class GameManager : MonoBehaviour
             SpawnHandler.Instance.PauseSpawning();
         }
         float totalCost = 0f;
-        List<Employee> healingCopy = new List<Employee>(EmployeeManager.Instance.HealingEmployees);
+        List<Employee> healingCopy = new List<Employee>(healingEmployees);
         foreach (var employee in healingCopy)
         {
             if (employee != null && employee.ActiveSick != null)

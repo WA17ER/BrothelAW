@@ -38,3 +38,5 @@ MonoBehaviour:
   - "\u0420\u0430\u043A\u043E\u043C"
   - "\u0421\u0442\u043E\u044F"
   sickResistance: 0
+  listIcon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  portraitIcon: {fileID: 21300000, guid: 205c2e01d0fb0f2409f8cdca5bec078b, type: 3}

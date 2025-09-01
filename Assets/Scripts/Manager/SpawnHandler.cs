@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class SpawnHandler : MonoBehaviour
 {
     public static SpawnHandler Instance { get; private set; }
-
     private List<GameObject> clientType1Prefabs;
     private List<GameObject> clientType2Prefabs;
     private List<GameObject> clientType3Prefabs;
@@ -13,6 +14,7 @@ public class SpawnHandler : MonoBehaviour
     private Dictionary<int, int> extraVisitors;
     private bool isSpawning;
     private Coroutine spawnCoroutine;
+    public UnityEvent<ClientData> OnClientSpawned; // Событие для уведомления о спавне
 
     private void Awake()
     {
@@ -75,7 +77,6 @@ public class SpawnHandler : MonoBehaviour
     private IEnumerator SpawnClients()
     {
         yield return new WaitForSeconds(Random.Range(10f, 20f));
-
         int totalClientsToSpawn = GameManager.Instance.TotalClients;
         while (isSpawning && GameManager.Instance.ClientsSpawnedToday < totalClientsToSpawn)
         {
@@ -91,12 +92,34 @@ public class SpawnHandler : MonoBehaviour
                     CustomerMovement movement = clientGO.GetComponent<CustomerMovement>();
                     if (clientData != null && movement != null)
                     {
-                        clientData.clientName = $"Client_{GameManager.Instance.ClientsSpawnedToday + 1}";
-                        clientData.InitializeClientPreferences(clientType);
+                        // Сохраняем имя из префаба, добавляя индекс при дублировании
+                        string baseName = clientData.clientName;
+                        int nameIndex = 1;
+                        string uniqueName = baseName;
+                        while (GameManager.Instance.ClientPool.Any(c => c.clientName == uniqueName) ||
+                               ClientManager.Instance.AllClients.Any(c => c.clientName == uniqueName))
+                        {
+                            uniqueName = $"{baseName}_{nameIndex++}";
+                        }
+                        clientData.clientName = uniqueName;
+                        Debug.Log($"Клиент спавнен с именем {clientData.clientName} из префаба {baseName}, уникальность проверена");
+
+                        // Выбор случайной сотрудницы
+                        List<Employee> availableEmployees = EmployeeManager.Instance.AvailableEmployees;
+                        Employee randomEmployee = availableEmployees != null && availableEmployees.Count > 0 ?
+                            availableEmployees[Random.Range(0, availableEmployees.Count)] : null;
+                        EmployeeDataSO employeeData = randomEmployee?.Data;
+
+                        // Инициализация предпочтений на основе случайной сотрудницы
+                        clientData.InitializeClientPreferences(clientType, randomEmployee);
+
                         clientData.SetState(ClientData.ClientState.MovingToRegister);
                         GameManager.Instance.ClientPool.Add(clientData);
                         GameManager.Instance.ClientsSpawnedToday++;
-                        Debug.Log($"Клиент {clientData.clientName} типа {clientType} заспавнен.");
+                        if (OnClientSpawned != null)
+                        {
+                            OnClientSpawned.Invoke(clientData);
+                        }
                     }
                     else
                     {

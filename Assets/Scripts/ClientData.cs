@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class ClientData : MonoBehaviour
 {
@@ -14,7 +15,6 @@ public class ClientData : MonoBehaviour
         Servicing,
         Exiting
     }
-
     public string clientName;
     public string RequestedService { get; set; }
     public SicknessSO ActiveSick { get; set; }
@@ -24,7 +24,7 @@ public class ClientData : MonoBehaviour
     [SerializeField] private ClientDataSO clientDataSO;
     public ClientDataSO ClientDataSO { get => clientDataSO; }
     public ClientState State { get; private set; }
-    public float waitTime { get; set; }
+    public float waitTime { get; set; } // Синхронизировано с ClientManager
     public int clientType { get; private set; }
     public EmployeeDataSO.BreastSize preferredBreastSize { get; private set; }
     public EmployeeDataSO.BodyType preferredBodyType { get; private set; }
@@ -34,26 +34,28 @@ public class ClientData : MonoBehaviour
     private const float OnChairTime = 20f;
     public Transform targetChair { get; private set; }
     private static List<Transform> occupiedChairs = new List<Transform>();
+    [SerializeField] private UnityEvent<ClientData> onStateChanged;
+    public UnityEvent<ClientData> OnStateChanged => onStateChanged;
+    public bool wantsSpecificEmployee { get; private set; } // Новый параметр
 
     private void Awake()
     {
         State = ClientState.MovingToRegister;
-        waitTime = WaitingTime;
+        waitTime = WaitingTime; // Начальное значение
         selectedEmployee = null;
+        wantsSpecificEmployee = false; // Дефолтное значение
     }
 
-    public void InitializeClientPreferences(int type)
+    public void InitializeClientPreferences(int type, Employee randomEmployee = null)
     {
         clientType = type;
-        Employee employee = EmployeeManager.Instance.AvailableEmployees.FirstOrDefault();
-
+        EmployeeDataSO employeeData = randomEmployee?.Data;
         if (clientDataSO != null)
         {
             float step = clientDataSO.goldStep;
             int rangeMin = Mathf.CeilToInt(clientDataSO.minGold / step);
             int rangeMax = Mathf.FloorToInt(clientDataSO.maxGold / step);
             clientGold = Random.Range(rangeMin, rangeMax + 1) * step;
-
             if (clientDataSO.possibleSicknesses != null && clientDataSO.possibleSicknesses.Count > 0 && Random.Range(0f, 100f) < clientDataSO.sickChance)
             {
                 ActiveSick = clientDataSO.possibleSicknesses[Random.Range(0, clientDataSO.possibleSicknesses.Count)];
@@ -69,137 +71,128 @@ public class ClientData : MonoBehaviour
             ActiveSick = null;
             Debug.LogWarning($"ClientDataSO не задано для клиента {clientName}. Использовано золото по умолчанию: {clientGold}, Болезнь: none");
         }
+        bool isSpecialRace = employeeData != null && (employeeData.race == EmployeeDataSO.Race.Допельгангер || employeeData.race == EmployeeDataSO.Race.Суккуб || employeeData.race == EmployeeDataSO.Race.Ангел);
 
-        if (employee != null)
+        // Сброс предпочтений перед инициализацией
+        RequestedService = null;
+        preferredRace = EmployeeDataSO.Race.Человек; // Дефолтное значение
+        preferredBodyType = EmployeeDataSO.BodyType.Обычное; // Дефолтное значение
+        preferredBreastSize = EmployeeDataSO.BreastSize.A; // Дефолтное значение
+        wantsSpecificEmployee = (clientType == 4); // Установка в true только для типа 4
+
+        // Генерация предпочтений в зависимости от типа клиента
+        switch (clientType)
         {
-            bool isSpecialRace = employee.Race == EmployeeDataSO.Race.Допельгангер || employee.Race == EmployeeDataSO.Race.Суккуб || employee.Race == EmployeeDataSO.Race.Ангел;
-            if (clientType == 1)
-            {
-                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employee.Skills.Keys.ElementAt(Random.Range(0, employee.Skills.Count));
-                preferredBreastSize = EmployeeDataSO.BreastSize.A;
-                preferredBodyType = EmployeeDataSO.BodyType.Обычное;
-                preferredRace = EmployeeDataSO.Race.Человек;
+            case 1: // Только услуга
+                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employeeData?.BaseSkills.Length > 0 ? employeeData.BaseSkills[Random.Range(0, employeeData.BaseSkills.Length)] : EmployeeManager.Instance.GetRandomService();
+                preferredRace = EmployeeDataSO.Race.None; // Сброс к None
+                preferredBodyType = EmployeeDataSO.BodyType.None; // Сброс к None
+                preferredBreastSize = EmployeeDataSO.BreastSize.None; // Сброс к None
                 Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: не заданы");
-            }
-            else if (clientType == 2)
-            {
-                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employee.Skills.Keys.ElementAt(Random.Range(0, employee.Skills.Count));
+                break;
+
+            case 2: // Услуга + один параметр (тело или грудь)
+                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employeeData?.BaseSkills.Length > 0 ? employeeData.BaseSkills[Random.Range(0, employeeData.BaseSkills.Length)] : EmployeeManager.Instance.GetRandomService();
                 if (Random.value < 0.5f)
                 {
-                    preferredBreastSize = employee.BreastSize;
-                    preferredBodyType = EmployeeDataSO.BodyType.Обычное;
-                    Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован на основе сотрудницы {employee.Data.employeeName}: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: BreastSize = {preferredBreastSize}");
+                    preferredBreastSize = employeeData?.breastSize ?? EmployeeDataSO.BreastSize.None;
+                    preferredBodyType = EmployeeDataSO.BodyType.None; // Сброс
                 }
                 else
                 {
-                    preferredBreastSize = EmployeeDataSO.BreastSize.A;
-                    preferredBodyType = employee.BodyType;
-                    Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован на основе сотрудницы {employee.Data.employeeName}: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: BodyType = {preferredBodyType}");
+                    preferredBodyType = employeeData?.bodyType ?? EmployeeDataSO.BodyType.None;
+                    preferredBreastSize = EmployeeDataSO.BreastSize.None; // Сброс
                 }
-                preferredRace = EmployeeDataSO.Race.Человек;
-            }
-            else if (clientType == 3)
-            {
-                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employee.Skills.Keys.ElementAt(Random.Range(0, employee.Skills.Count));
-                preferredBreastSize = EmployeeDataSO.BreastSize.A;
-                preferredBodyType = EmployeeDataSO.BodyType.Обычное;
-                preferredRace = employee.Race;
-                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован на основе сотрудницы {employee.Data.employeeName}: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: Race = {preferredRace}");
-            }
-            else if (clientType == 4)
-            {
-                SpecificEmployee = employee;
+                preferredRace = EmployeeDataSO.Race.None; // Сброс
+                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован на основе сотрудницы {employeeData?.employeeName}: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: {(preferredBreastSize != EmployeeDataSO.BreastSize.None ? $"BreastSize = {preferredBreastSize}" : $"BodyType = {preferredBodyType}")}");
+                break;
+
+            case 3: // Услуга + раса
+                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employeeData?.BaseSkills.Length > 0 ? employeeData.BaseSkills[Random.Range(0, employeeData.BaseSkills.Length)] : EmployeeManager.Instance.GetRandomService();
+                preferredRace = employeeData?.race ?? EmployeeDataSO.Race.None;
+                preferredBodyType = EmployeeDataSO.BodyType.None; // Сброс
+                preferredBreastSize = EmployeeDataSO.BreastSize.None; // Сброс
+                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован на основе сотрудницы {employeeData?.employeeName}: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: Race = {preferredRace}");
+                break;
+
+            case 4: // Все параметры
+                SpecificEmployee = randomEmployee;
+                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employeeData?.BaseSkills.Length > 0 ? employeeData.BaseSkills[Random.Range(0, employeeData.BaseSkills.Length)] : EmployeeManager.Instance.GetRandomService();
+                preferredBreastSize = employeeData?.breastSize ?? EmployeeDataSO.BreastSize.None;
+                preferredBodyType = employeeData?.bodyType ?? EmployeeDataSO.BodyType.None;
+                preferredRace = employeeData?.race ?? EmployeeDataSO.Race.None;
+                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован: Конкретная сотрудница = {employeeData?.employeeName}, Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: Race = {preferredRace}, BodyType = {preferredBodyType}, BreastSize = {preferredBreastSize}");
+                break;
+
+            default:
                 RequestedService = EmployeeManager.Instance.GetRandomService();
-                preferredBreastSize = EmployeeDataSO.BreastSize.A;
-                preferredBodyType = EmployeeDataSO.BodyType.Обычное;
-                preferredRace = EmployeeDataSO.Race.Человек;
-                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован: Конкретная сотрудница = {employee.Data.employeeName}, Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: не заданы");
-            }
-        }
-        else
-        {
-            RequestedService = EmployeeManager.Instance.GetRandomService();
-            preferredBreastSize = EmployeeDataSO.BreastSize.A;
-            preferredBodyType = EmployeeDataSO.BodyType.Обычное;
-            preferredRace = EmployeeDataSO.Race.Человек;
-            Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован без сотрудниц: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: не заданы");
+                preferredRace = EmployeeDataSO.Race.None;
+                preferredBodyType = EmployeeDataSO.BodyType.None;
+                preferredBreastSize = EmployeeDataSO.BreastSize.None;
+                Debug.LogWarning($"Неизвестный тип клиента {clientType} для {clientName}, предпочтения установлены по умолчанию: Услуга = {RequestedService}");
+                break;
         }
     }
 
     public void SetState(ClientState newState)
     {
         State = newState;
-        if (newState == ClientState.Waiting)
-        {
-            waitTime = WaitingTime;
-            Debug.Log($"Клиент {clientName} перешёл в Waiting.");
-        }
-        else if (newState == ClientState.OnChair)
-        {
-            waitTime = OnChairTime;
-        }
+        Debug.Log($"Состояние клиента {clientName} изменено на {newState}");
+        onStateChanged?.Invoke(this);
     }
 
     public void SetTargetChair(Transform chairBottomPoint)
     {
         targetChair = chairBottomPoint;
         Debug.Log($"Клиент {clientName} получил цель BottomPoint стула: {chairBottomPoint?.parent.name} на позиции {chairBottomPoint?.position}");
-        SetState(ClientState.OnOccupyChair);
+        SetState(ClientData.ClientState.OnOccupyChair);
     }
 
     [ContextMenu("Ожидать")]
     public void SendToChair()
     {
-        if (State != ClientState.Waiting)
+        if (State != ClientData.ClientState.Waiting)
         {
             Debug.LogWarning($"Клиент {clientName} не в состоянии Waiting для отправки на стул.");
             return;
         }
-
         Transform chair = GameManager.Instance.Chairs.FirstOrDefault(c => c.gameObject.activeInHierarchy && !occupiedChairs.Contains(c.Find("BottomPoint")));
         if (chair == null)
         {
             Debug.LogWarning($"Нет доступных стульев для клиента {clientName}.");
             return;
         }
-
         Transform bottomPoint = chair.Find("BottomPoint");
         if (bottomPoint == null)
         {
             Debug.LogWarning($"BottomPoint не найден для стула {chair.name}.");
             return;
         }
-
         occupiedChairs.Add(bottomPoint);
         Debug.Log($"Выбран BottomPoint стула {chair.name} для клиента {clientName}.");
-        SetTargetChair(bottomPoint);
-        Debug.Log($"Клиент {clientName} отправлен на стул.");
+        SetTargetChair(bottomPoint); // Используем SetTargetChair для установки состояния OnOccupyChair
     }
 
     [ContextMenu("Назначить сотрудницу")]
     public void AssignEmployee()
     {
-        if (State != ClientState.Waiting && State != ClientState.OnChair)
+        if (State != ClientData.ClientState.Waiting && State != ClientData.ClientState.OnChair)
         {
             Debug.LogWarning($"Клиент {clientName} не в состоянии Waiting или OnChair для назначения сотрудницы.");
             return;
         }
-
         if (selectedEmployee == null)
         {
             Debug.LogWarning($"Сотрудница не выбрана для клиента {clientName}.");
             return;
         }
-
         if (!EmployeeManager.Instance.AvailableEmployees.Contains(selectedEmployee))
         {
             Debug.LogWarning($"Сотрудница {selectedEmployee.Data.employeeName} не доступна для клиента {clientName}.");
             selectedEmployee = null;
             return;
         }
-
         bool isSpecialRace = selectedEmployee.Race == EmployeeDataSO.Race.Допельгангер || selectedEmployee.Race == EmployeeDataSO.Race.Суккуб || selectedEmployee.Race == EmployeeDataSO.Race.Ангел;
-
         if (!isSpecialRace)
         {
             if (!selectedEmployee.Skills.ContainsKey(RequestedService) && clientType != 4)
@@ -223,7 +216,6 @@ public class ClientData : MonoBehaviour
                 return;
             }
         }
-
         Debug.Log($"Проверка соответствия для клиента {clientName} (Тип {clientType}): Услуга = {RequestedService}, BreastSize = {selectedEmployee.BreastSize}/{preferredBreastSize}, BodyType = {selectedEmployee.BodyType}/{preferredBodyType}, Race = {selectedEmployee.Race}/{preferredRace}, Выбрана сотрудница: {selectedEmployee.Data.employeeName}");
         float reward = EmployeeManager.Instance.AssignEmployee(this, selectedEmployee);
         if (clientGold >= reward)
@@ -232,7 +224,7 @@ public class ClientData : MonoBehaviour
             GameManager.Instance.AddGold(reward);
             SpecificEmployee = selectedEmployee; // Установить SpecificEmployee для передачи в CompleteService
             ClearChair();
-            SetState(ClientState.MovingToService);
+            SetState(ClientData.ClientState.MovingToService);
             Debug.Log($"Заказ успешен: Награда = {reward}, Остаток золота клиента = {clientGold}.");
         }
         else

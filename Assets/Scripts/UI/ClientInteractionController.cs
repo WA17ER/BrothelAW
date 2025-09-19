@@ -133,10 +133,44 @@ public class ClientInteractionController : MonoBehaviour
     {
         if (isDestroyed || employee == null || currentClient == null) return 0f;
 
-        // Простая заглушка для расчёта награды (замените на реальную логику)
-        float reward = 100f; // Базовая награда
-        reward *= currentClient.clientType; // Умножаем на тип клиента
-        return reward;
+        // Базовая стоимость услуги из EmployeeManager
+        float baseReward = EmployeeManager.Instance.ServicePrices
+            .Find(sp => sp.serviceName == currentClient.RequestedService)?.price ?? 0f;
+
+        // Получение бонусов из EmployeeBonusesSO через EmployeeManager
+        EmployeeBonusesSO bonuses = EmployeeManager.Instance.GetBonuses();
+        if (bonuses == null) return baseReward;
+
+        // Бонус за уровень навыка
+        float skillBonus = 0f;
+        if (currentClient.SpecificEmployee != null && currentClient.SpecificEmployee.Skills.ContainsKey(currentClient.RequestedService))
+        {
+            skillBonus = currentClient.SpecificEmployee.Skills[currentClient.RequestedService].level * 0.1f;
+        }
+
+        // Проверка на спецрасы (Допельгангер, Суккуб, Ангел)
+        bool isSpecialRace = employee.race == EmployeeDataSO.Race.Допельгангер || employee.race == EmployeeDataSO.Race.Суккуб || employee.race == EmployeeDataSO.Race.Ангел;
+        if (!isSpecialRace)
+        {
+            // Бонус за размер груди
+            float breastBonus = bonuses.breastSizeBonuses.Find(b => b.breastSize == employee.breastSize).bonus;
+
+            // Бонус за тип тела
+            float bodyBonus = bonuses.bodyTypeBonuses.Find(b => b.bodyType == employee.bodyType).bonus;
+
+            // Бонус за расу
+            float raceBonus = bonuses.raceBonuses.Find(b => b.race == employee.race).bonus;
+
+            // Общая стоимость с бонусами
+            baseReward += breastBonus + bodyBonus + raceBonus + skillBonus;
+        }
+        else
+        {
+            // Только бонус за расу для спецрасов
+            baseReward += bonuses.raceBonuses.Find(b => b.race == employee.race).bonus + skillBonus;
+        }
+
+        return baseReward;
     }
 
     public void InitializePanel() // Сделан публичным

@@ -9,7 +9,16 @@ public class Employee : MonoBehaviour
         Sick,
         Healing,
         OnService,
-        HeavySick
+        HeavySick,
+        Marketing
+    }
+
+    [SerializeField]
+    private EmployeeState currentState;
+    public EmployeeState CurrentState
+    {
+        get => currentState;
+        set => currentState = value;
     }
 
     private EmployeeDataSO data;
@@ -32,6 +41,7 @@ public class Employee : MonoBehaviour
     {
         data = employeeData;
         staminaCurrent = data.StaminaMax;
+        currentState = EmployeeState.Available; // Инициализация состояния
         foreach (var skill in data.BaseSkills)
         {
             skills[skill] = (0, 0);
@@ -48,13 +58,18 @@ public class Employee : MonoBehaviour
             return EmployeeState.HeavySick;
         if (activeSick != null)
             return EmployeeState.Sick;
-        return EmployeeState.Available;
+        return currentState;
     }
 
     public void SetState(EmployeeState state)
     {
+        if (data == null)
+        {
+            Debug.LogError("Сотрудница не инициализирована: data равен null.");
+            return;
+        }
+        currentState = state;
         Debug.Log($"Сотрудница {data.employeeName} меняет состояние на {state}.");
-        EmployeeManager.Instance.MoveEmployeeToList(this);
     }
 
     public void Heal()
@@ -66,6 +81,7 @@ public class Employee : MonoBehaviour
         }
         healingTimeRemaining = activeSick.duration;
         SetState(EmployeeState.Healing);
+        Debug.Log($"Лечение {data.employeeName} начато, длительность: {healingTimeRemaining}");
     }
 
     public void ProgressHealing()
@@ -84,6 +100,7 @@ public class Employee : MonoBehaviour
                 activeSick = null;
                 SetState(EmployeeState.Available);
             }
+            Debug.Log($"Прогресс лечения {data.employeeName}, осталось: {healingTimeRemaining}");
         }
     }
 }

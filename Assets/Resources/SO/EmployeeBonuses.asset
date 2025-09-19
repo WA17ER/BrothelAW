@@ -60,6 +60,8 @@ MonoBehaviour:
   - race: 7
     bonus: 300
   - race: 8
-    bonus: 800
-  - race: 9
+    bonus: 200
+  - race: 10
     bonus: 1000
+  - race: 9
+    bonus: 500

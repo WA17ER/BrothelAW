@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58ce4151240054a4e8e415e1606f2d19, type: 3}
+  m_Name: Main
+  m_EditorClassIdentifier: 
+  employeePreferences:
+    chestSize:
+    - size: 0
+      value: 1
+    - size: 1
+      value: 2
+    - size: 2
+      value: 3
+    - size: 3
+      value: 4
+    - size: 4
+      value: 4
+    - size: 5
+      value: 4
+    bodyType:
+    - type: 0
+      value: 1
+    - type: 1
+      value: 5
+    - type: 2
+      value: 2
+    - type: 3
+      value: 4
+    - type: 5
+      value: 10
+    - type: 4
+      value: 1
+    - type: 6
+      value: 2
+    racePreference:
+    - race: 0
+      value: 0
+    - race: 1
+      value: 2
+    - race: 2
+      value: 2
+    - race: 3
+      value: -5
+    - race: 4
+      value: -10
+    - race: 5
+      value: 0
+    - race: 6
+      value: 10
+    - race: 7
+      value: 5
+  districtName: Main
+  popularityToUnlock: 0
+  clientTypes: []
+  availableRaces: 0600000001000000000000000000000000000000
+  districtPopularity: 0
+  raceUnlocks:
+  - race: 6
+    popularityThreshold: 100
+  - race: 8
+    popularityThreshold: 1000
+  - race: 9
+    popularityThreshold: 500
+  preliminaryPopularity: 0

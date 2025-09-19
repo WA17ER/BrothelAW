@@ -11,6 +11,11 @@ public class ResourcePanelController : MonoBehaviour
         UpdateDisplay();
     }
 
+    private void Update()
+    {
+        UpdateDisplay();
+    }
+
     void UpdateDisplay()
     {
         if (goldText != null && popularityText != null && GameStateManager.Instance != null)

@@ -30,6 +30,7 @@ public class ClientData : MonoBehaviour
     public EmployeeDataSO.BodyType preferredBodyType { get; private set; }
     public EmployeeDataSO.Race preferredRace { get; private set; }
     public float clientGold { get; private set; }
+    public int ClientId { get; private set; } // Уникальный ID клиента
     private const float WaitingTime = 10f;
     private const float OnChairTime = 20f;
     public Transform targetChair { get; private set; }
@@ -137,14 +138,14 @@ public class ClientData : MonoBehaviour
     public void SetState(ClientState newState)
     {
         State = newState;
-        Debug.Log($"Состояние клиента {clientName} изменено на {newState}");
+        Debug.Log($"Состояние клиента {clientName} (ID: {ClientId}) изменено на {newState}");
         onStateChanged?.Invoke(this);
     }
 
     public void SetTargetChair(Transform chairBottomPoint)
     {
         targetChair = chairBottomPoint;
-        Debug.Log($"Клиент {clientName} получил цель BottomPoint стула: {chairBottomPoint?.parent.name} на позиции {chairBottomPoint?.position}");
+        Debug.Log($"Клиент {clientName} (ID: {ClientId}) получил цель BottomPoint стула: {chairBottomPoint?.parent.name} на позиции {chairBottomPoint?.position}");
         SetState(ClientData.ClientState.OnOccupyChair);
     }
 
@@ -153,13 +154,13 @@ public class ClientData : MonoBehaviour
     {
         if (State != ClientData.ClientState.Waiting)
         {
-            Debug.LogWarning($"Клиент {clientName} не в состоянии Waiting для отправки на стул.");
+            Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) не в состоянии Waiting для отправки на стул.");
             return;
         }
         Transform chair = GameManager.Instance.Chairs.FirstOrDefault(c => c.gameObject.activeInHierarchy && !occupiedChairs.Contains(c.Find("BottomPoint")));
         if (chair == null)
         {
-            Debug.LogWarning($"Нет доступных стульев для клиента {clientName}.");
+            Debug.LogWarning($"Нет доступных стульев для клиента {clientName} (ID: {ClientId}).");
             return;
         }
         Transform bottomPoint = chair.Find("BottomPoint");
@@ -169,7 +170,7 @@ public class ClientData : MonoBehaviour
             return;
         }
         occupiedChairs.Add(bottomPoint);
-        Debug.Log($"Выбран BottomPoint стула {chair.name} для клиента {clientName}.");
+        Debug.Log($"Выбран BottomPoint стула {chair.name} для клиента {clientName} (ID: {ClientId}).");
         SetTargetChair(bottomPoint); // Используем SetTargetChair для установки состояния OnOccupyChair
     }
 
@@ -178,17 +179,17 @@ public class ClientData : MonoBehaviour
     {
         if (State != ClientData.ClientState.Waiting && State != ClientData.ClientState.OnChair)
         {
-            Debug.LogWarning($"Клиент {clientName} не в состоянии Waiting или OnChair для назначения сотрудницы.");
+            Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) не в состоянии Waiting или OnChair для назначения сотрудницы.");
             return;
         }
         if (selectedEmployee == null)
         {
-            Debug.LogWarning($"Сотрудница не выбрана для клиента {clientName}.");
+            Debug.LogWarning($"Сотрудница не выбрана для клиента {clientName} (ID: {ClientId}).");
             return;
         }
         if (!EmployeeManager.Instance.AvailableEmployees.Contains(selectedEmployee))
         {
-            Debug.LogWarning($"Сотрудница {selectedEmployee.Data.employeeName} не доступна для клиента {clientName}.");
+            Debug.LogWarning($"Сотрудница {selectedEmployee.Data.employeeName} не доступна для клиента {clientName} (ID: {ClientId}).");
             selectedEmployee = null;
             return;
         }
@@ -197,26 +198,26 @@ public class ClientData : MonoBehaviour
         {
             if (!selectedEmployee.Skills.ContainsKey(RequestedService) && clientType != 4)
             {
-                Debug.LogWarning($"Клиент {clientName} ожидал услугу {RequestedService}, сотрудница {selectedEmployee.Data.employeeName} не поддерживает эту услугу.");
+                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал услугу {RequestedService}, сотрудница {selectedEmployee.Data.employeeName} не поддерживает эту услугу.");
                 return;
             }
             if (clientType == 2 && selectedEmployee.BreastSize != preferredBreastSize && selectedEmployee.BodyType != preferredBodyType)
             {
-                Debug.LogWarning($"Клиент {clientName} ожидал BreastSize: {preferredBreastSize} или BodyType: {preferredBodyType}, сотрудница {selectedEmployee.Data.employeeName} имеет BreastSize: {selectedEmployee.BreastSize}, BodyType: {selectedEmployee.BodyType}.");
+                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал BreastSize: {preferredBreastSize} или BodyType: {preferredBodyType}, сотрудница {selectedEmployee.Data.employeeName} имеет BreastSize: {selectedEmployee.BreastSize}, BodyType: {selectedEmployee.BodyType}.");
                 return;
             }
             if (clientType == 3 && selectedEmployee.Race != preferredRace)
             {
-                Debug.LogWarning($"Клиент {clientName} ожидал Race: {preferredRace}, сотрудница {selectedEmployee.Data.employeeName} имеет Race: {selectedEmployee.Race}.");
+                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал Race: {preferredRace}, сотрудница {selectedEmployee.Data.employeeName} имеет Race: {selectedEmployee.Race}.");
                 return;
             }
             if (clientType == 4 && selectedEmployee != SpecificEmployee)
             {
-                Debug.LogWarning($"Клиент {clientName} ожидал сотрудницу {SpecificEmployee.Data.employeeName}, выбрана {selectedEmployee.Data.employeeName}.");
+                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал сотрудницу {SpecificEmployee.Data.employeeName}, выбрана {selectedEmployee.Data.employeeName}.");
                 return;
             }
         }
-        Debug.Log($"Проверка соответствия для клиента {clientName} (Тип {clientType}): Услуга = {RequestedService}, BreastSize = {selectedEmployee.BreastSize}/{preferredBreastSize}, BodyType = {selectedEmployee.BodyType}/{preferredBodyType}, Race = {selectedEmployee.Race}/{preferredRace}, Выбрана сотрудница: {selectedEmployee.Data.employeeName}");
+        Debug.Log($"Проверка соответствия для клиента {clientName} (ID: {ClientId}, Тип {clientType}): Услуга = {RequestedService}, BreastSize = {selectedEmployee.BreastSize}/{preferredBreastSize}, BodyType = {selectedEmployee.BodyType}/{preferredBodyType}, Race = {selectedEmployee.Race}/{preferredRace}, Выбрана сотрудница: {selectedEmployee.Data.employeeName}");
         float reward = EmployeeManager.Instance.AssignEmployee(this, selectedEmployee);
         if (clientGold >= reward)
         {
@@ -225,11 +226,11 @@ public class ClientData : MonoBehaviour
             SpecificEmployee = selectedEmployee; // Установить SpecificEmployee для передачи в CompleteService
             ClearChair();
             SetState(ClientData.ClientState.MovingToService);
-            Debug.Log($"Заказ успешен: Награда = {reward}, Остаток золота клиента = {clientGold}.");
+            Debug.Log($"Заказ успешен для клиента {clientName} (ID: {ClientId}): Награда = {reward}, Остаток золота клиента = {clientGold}.");
         }
         else
         {
-            Debug.LogWarning($"У клиента {clientName} недостаточно золота. Требуется: {reward}, доступно: {clientGold}.");
+            Debug.LogWarning($"У клиента {clientName} (ID: {ClientId}) недостаточно золота. Требуется: {reward}, доступно: {clientGold}.");
         }
     }
 
@@ -238,8 +239,14 @@ public class ClientData : MonoBehaviour
         if (targetChair != null)
         {
             occupiedChairs.Remove(targetChair);
-            Debug.Log($"Стул {targetChair.parent.name} освобождён клиентом {clientName}.");
+            Debug.Log($"Стул {targetChair.parent.name} освобождён клиентом {clientName} (ID: {ClientId}).");
             targetChair = null;
         }
+    }
+
+    // Метод для установки ClientId (вызывается из SpawnHandler)
+    public void SetClientId(int id)
+    {
+        ClientId = id;
     }
 }

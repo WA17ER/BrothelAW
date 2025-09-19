@@ -117,8 +117,7 @@ public class ClientManager : MonoBehaviour
                     OnClientWaiting?.Invoke(client); // Вызов события при удалении
                 }
             }
-        }
-        Debug.Log($"Клиентов в waitingClients: {waitingClients.Count}, onChairClients: {onChairClients.Count}, allClients: {allClients.Count}");
+        }        
     }
 
     public void OnClientStateChanged(ClientData client)

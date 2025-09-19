@@ -19,4 +19,16 @@ public class ClientDataSO : ScriptableObject
     public float stepPerWeek = 10f;
     public float sickChance = 30f; // Вероятность заболевания клиента (0–100)
     public List<SicknessSO> possibleSicknesses; // Список возможных болезней
+    public int maxClientPerScene; // Максимальное количество клиентов данного типа за сцену
+
+    [System.Serializable]
+    public class Preference<T>
+    {
+        public List<T> preferences;
+        public float chance;
+    }
+
+    public Preference<EmployeeDataSO.Race> racePreference = new Preference<EmployeeDataSO.Race> { preferences = new List<EmployeeDataSO.Race>(), chance = 0f };
+    public Preference<EmployeeDataSO.BodyType> bodyPreference = new Preference<EmployeeDataSO.BodyType> { preferences = new List<EmployeeDataSO.BodyType>(), chance = 0f };
+    public Preference<EmployeeDataSO.BreastSize> breastPreference = new Preference<EmployeeDataSO.BreastSize> { preferences = new List<EmployeeDataSO.BreastSize>(), chance = 0f };
 }

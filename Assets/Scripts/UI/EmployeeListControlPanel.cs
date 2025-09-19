@@ -1,34 +1,33 @@
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEngine.UI; // Для Button и Image
-using System.Linq; // Для использования LINQ
-using TMPro; // Для TMP_Text
+using UnityEngine.UI;
+using System.Linq;
+using TMPro;
 
 public class EmployeeListControlPanel : MonoBehaviour
 {
-    [SerializeField] private GameObject employeePanelPrefab; // Префаб панели сотрудницы
-    [SerializeField] private Transform employeeGrid; // Ссылка на EmployeeGrid
-    [SerializeField] private Button confirmButton; // Кнопка подтверждения
-    [SerializeField] private Button cancelButton; // Кнопка отмены
-    [SerializeField] private GameObject clientOrderPanelPrefab; // Префаб панели заказа клиента
-    [SerializeField] private GameObject employeeInfoPanelPrefab; // Префаб панели информации о сотруднице
-    [SerializeField] private TMP_Text employeeNameText; // Текстовое поле для имени
-    [SerializeField] private TMP_Text employeeRaceText; // Текстовое поле для расы
-    [SerializeField] private TMP_Text employeeBodyTypeText; // Текстовое поле для типа тела
-    [SerializeField] private TMP_Text employeeBreastSizeText; // Текстовое поле для размера груди
-    [SerializeField] private TMP_Text employeeStaminaText; // Текстовое поле для стамины
-    [SerializeField] private TMP_Text employeeSkillText; // Текстовое поле для навыка
-    private ClientData currentClient; // Текущий клиент
-    private Employee preparedEmployee; // Предварительно выбранная сотрудница
-    private ClientInteractionController parentController; // Ссылка на родительский контроллер
-    private bool isDestroyed = false; // Флаг для проверки уничтожения
-    private GameObject clientOrderPanelInstance; // Инстанс панели заказа
-    private GameObject employeeInfoPanelInstance; // Инстанс панели информации о сотруднице
+    [SerializeField] private GameObject employeePanelPrefab;
+    [SerializeField] private Transform employeeGrid;
+    [SerializeField] private Button confirmButton;
+    [SerializeField] private Button cancelButton;
+    [SerializeField] private GameObject clientOrderPanelPrefab;
+    [SerializeField] private GameObject employeeInfoPanelPrefab;
+    [SerializeField] private TMP_Text employeeNameText;
+    [SerializeField] private TMP_Text employeeRaceText;
+    [SerializeField] private TMP_Text employeeBodyTypeText;
+    [SerializeField] private TMP_Text employeeBreastSizeText;
+    [SerializeField] private TMP_Text employeeStaminaText;
+    [SerializeField] private TMP_Text employeeSkillText;
+    private ClientData currentClient;
+    private Employee preparedEmployee;
+    private ClientInteractionController parentController;
+    private bool isDestroyed = false;
+    private GameObject clientOrderPanelInstance;
+    private GameObject employeeInfoPanelInstance;
 
-    // Получение всех сотрудников из EmployeeManager с фильтрацией
     private List<EmployeeDataSO> GetAllAvailableEmployees()
     {
-        if (isDestroyed) return new List<EmployeeDataSO>(); // Проверка на уничтожение
+        if (isDestroyed) return new List<EmployeeDataSO>();
         if (EmployeeManager.Instance != null)
         {
             List<Employee> allEmployees = EmployeeManager.Instance.GetAllEmployees();
@@ -37,10 +36,10 @@ public class EmployeeListControlPanel : MonoBehaviour
             {
                 if (employee != null && employee.Data != null)
                 {
-                    // Исключаем Healing и будущий Marketing (пока заглушка для Marketing)
-                    if (employee.GetState() != Employee.EmployeeState.Healing)
+                    Employee.EmployeeState state = employee.GetState();
+                    if (state != Employee.EmployeeState.Healing && state != Employee.EmployeeState.Marketing && state != Employee.EmployeeState.HeavySick)
                     {
-                        filteredEmployees.Add(employee.Data); // Добавляем EmployeeDataSO
+                        filteredEmployees.Add(employee.Data);
                     }
                 }
             }
@@ -52,7 +51,7 @@ public class EmployeeListControlPanel : MonoBehaviour
 
     public void Initialize(ClientData client, ClientInteractionController controller)
     {
-        if (isDestroyed) return; // Проверка на уничтожение
+        if (isDestroyed) return;
         currentClient = client;
         parentController = controller;
         if (currentClient == null)
@@ -68,20 +67,18 @@ public class EmployeeListControlPanel : MonoBehaviour
         {
             cancelButton.onClick.AddListener(OnCancelClick);
         }
-        preparedEmployee = null; // Сброс выбора при открытии
-        // Создание и инициализация панели заказа клиента
+        preparedEmployee = null;
         if (clientOrderPanelPrefab != null)
         {
             clientOrderPanelInstance = Instantiate(clientOrderPanelPrefab, transform);
             clientOrderPanelInstance.SetActive(true);
             PopulateClientOrderPanel();
         }
-        // Создание и инициализация панели информации о сотруднице
         if (employeeInfoPanelPrefab != null)
         {
             employeeInfoPanelInstance = Instantiate(employeeInfoPanelPrefab, transform);
             employeeInfoPanelInstance.SetActive(true);
-            PopulateEmployeeDetailPanel(); // Инициализация с пустыми данными или "None"
+            PopulateEmployeeDetailPanel();
         }
         PopulateEmployeeGrid();
         Debug.Log($"Инициализирована панель выбора для клиента {currentClient.clientName}");
@@ -183,10 +180,9 @@ public class EmployeeListControlPanel : MonoBehaviour
 
     void PopulateEmployeeGrid()
     {
-        if (isDestroyed) return; // Проверка на уничтожение
+        if (isDestroyed) return;
         if (employeePanelPrefab != null && employeeGrid != null)
         {
-            // Очистка предыдущих элементов
             foreach (Transform child in employeeGrid)
             {
                 Destroy(child.gameObject);
@@ -209,12 +205,10 @@ public class EmployeeListControlPanel : MonoBehaviour
                             employeeNameText.text = employee.employeeName;
                             panelButton.onClick.AddListener(() => OnEmployeePanelClick(employee));
 
-                            // Временная индикация недоступности (например, для OnService и HeavySick)
                             Employee relatedEmployee = EmployeeManager.Instance.GetAllEmployees().FirstOrDefault(e => e.Data == employee);
-                            if (relatedEmployee != null && (relatedEmployee.GetState() == Employee.EmployeeState.OnService ||
-                                                           relatedEmployee.GetState() == Employee.EmployeeState.HeavySick))
+                            if (relatedEmployee != null && (relatedEmployee.GetState() == Employee.EmployeeState.OnService || relatedEmployee.GetState() == Employee.EmployeeState.HeavySick))
                             {
-                                employeeIcon.color = new Color(0.5f, 0.5f, 0.5f); // Серый для недоступности
+                                employeeIcon.color = new Color(0.5f, 0.5f, 0.5f);
                                 employeeNameText.color = new Color(0.5f, 0.5f, 0.5f);
                             }
                             Debug.Log($"Добавлена панель для сотрудницы {employee.employeeName} с иконкой, состояние: {relatedEmployee?.GetState().ToString() ?? "Не определено"}");
@@ -231,13 +225,12 @@ public class EmployeeListControlPanel : MonoBehaviour
 
     void OnEmployeePanelClick(EmployeeDataSO employee)
     {
-        if (isDestroyed) return; // Проверка на уничтожение
-        // Поиск соответствующего Employee объекта
+        if (isDestroyed) return;
         Employee selected = EmployeeManager.Instance.GetAllEmployees().FirstOrDefault(e => e.Data == employee);
         if (selected != null)
         {
             preparedEmployee = selected;
-            PopulateEmployeeDetailPanel(); // Обновление панели информации о сотруднице
+            PopulateEmployeeDetailPanel();
             Debug.Log($"Сотрудница {preparedEmployee.Data.employeeName} предварительно выбрана");
         }
         else
@@ -247,37 +240,35 @@ public class EmployeeListControlPanel : MonoBehaviour
         }
     }
 
-    // Методы для кнопок
     public void OnConfirmClick()
     {
-        if (isDestroyed) return; // Проверка на уничтожение
+        if (isDestroyed) return;
         if (preparedEmployee != null && currentClient != null)
         {
-            currentClient.SelectedEmployee = preparedEmployee; // Передача данных независимо от соответствия
-            parentController.InitializePanel(); // Обновление родительской панели
-            Destroy(gameObject); // Уничтожение панели
+            currentClient.SelectedEmployee = preparedEmployee;
+            parentController.InitializePanel();
+            Destroy(gameObject);
             Debug.Log($"Сотрудница {preparedEmployee.Data.employeeName} выбрана и записана в SelectedEmployee для клиента {currentClient.clientName}");
         }
         else
         {
             Debug.LogWarning("Не выбрана сотрудница или клиент не найден для подтверждения");
-            Destroy(gameObject); // Уничтожение панели при ошибке
+            Destroy(gameObject);
         }
     }
 
     public void OnCancelClick()
     {
-        if (isDestroyed) return; // Проверка на уничтожение
-        Destroy(gameObject); // Уничтожение панели без снятия паузы
+        if (isDestroyed) return;
+        Destroy(gameObject);
         Debug.Log($"Кнопка Отмена нажата, панель уничтожена для клиента {currentClient?.clientName ?? "неизвестного клиента"}");
     }
 
     void OnDestroy()
     {
-        isDestroyed = true; // Установка флага уничтожения
-        if (clientOrderPanelInstance != null) Destroy(clientOrderPanelInstance); // Уничтожение панели заказа
-        if (employeeInfoPanelInstance != null) Destroy(employeeInfoPanelInstance); // Уничтожение панели информации
-        // Очистка слушателей событий
+        isDestroyed = true;
+        if (clientOrderPanelInstance != null) Destroy(clientOrderPanelInstance);
+        if (employeeInfoPanelInstance != null) Destroy(employeeInfoPanelInstance);
         if (confirmButton != null) confirmButton.onClick.RemoveAllListeners();
         if (cancelButton != null) cancelButton.onClick.RemoveAllListeners();
         Debug.Log("EmployeeListControlPanel уничтожен, все слушатели событий очищены");

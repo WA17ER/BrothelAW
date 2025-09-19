@@ -22,3 +22,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ec18cf327a0bfd04b8a668461db024c0, type: 2}
   - {fileID: 11400000, guid: c2e007130b6d4c3478b94295c69ae41d, type: 2}
   - {fileID: 11400000, guid: b0b2d368b3ece024e8433c0fbec4cc84, type: 2}
+  maxClientPerScene: 5
+  racePreference:
+    preferences: 000000000300000001000000
+    chance: 50
+  bodyPreference:
+    preferences: 02000000000000000300000006000000
+    chance: 50
+  breastPreference:
+    preferences: 00000000010000000200000003000000
+    chance: 0

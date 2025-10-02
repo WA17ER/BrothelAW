@@ -7,17 +7,13 @@ using UnityEngine.Events;
 public class SpawnHandler : MonoBehaviour
 {
     public static SpawnHandler Instance { get; private set; }
-    private List<GameObject> clientType1Prefabs;
-    private List<GameObject> clientType2Prefabs;
-    private List<GameObject> clientType3Prefabs;
-    private List<GameObject> clientType4Prefabs;
-    private List<ClientDataSO> mixedVisitorList;
+    private List<ClientDataSO> mixedVisitorList; // Теперь ClientDataSO
     private bool isSpawning;
     private Coroutine spawnCoroutine;
-    public UnityEvent<ClientData> OnClientSpawned; // Событие для уведомления о спавне
+    public UnityEvent<ClientData> OnClientSpawned;
     private Transform spawnPoint;
-    private int nextClientId = 1; // Счётчик для уникальных ID
-    private List<ClientDataSO> availableVisitors;
+    private int nextClientId = 1;
+    private List<ClientDataSO> availableVisitors; // ClientDataSO
 
     private void Awake()
     {
@@ -32,16 +28,12 @@ public class SpawnHandler : MonoBehaviour
         }
     }
 
-    public void Initialize(List<GameObject> type1, List<GameObject> type2, List<GameObject> type3, List<GameObject> type4, List<ClientDataSO> visitors)
+    public void Initialize(List<ClientDataSO> totalVisitors) // Только totalClientList
     {
-        clientType1Prefabs = type1;
-        clientType2Prefabs = type2;
-        clientType3Prefabs = type3;
-        clientType4Prefabs = type4;
-        mixedVisitorList = visitors;
+        mixedVisitorList = totalVisitors;
         availableVisitors = new List<ClientDataSO>(mixedVisitorList);
         isSpawning = false;
-        spawnPoint = GameManager.Instance.SpawnPoint; // Изначальная привязка
+        spawnPoint = GameManager.Instance.SpawnPoint;
         Debug.Log($"SpawnHandler initialized with spawnPoint: {spawnPoint?.name}, mixedVisitorList count: {mixedVisitorList.Count}, availableVisitors count: {availableVisitors.Count}");
     }
 
@@ -109,51 +101,41 @@ public class SpawnHandler : MonoBehaviour
                 }
                 ClientDataSO clientSO = GetRandomClient();
                 Debug.Log($"GetRandomClient returned: {clientSO?.name ?? "null"}");
-                if (clientSO != null)
+                if (clientSO != null && clientSO.Prefab != null)
                 {
-                    int clientType = GameManager.Instance.GetClientTypeId(clientSO);
-                    GameObject prefab = GetPrefabForType(clientType);
-                    Debug.Log($"GetPrefabForType returned: {prefab?.name ?? "null"} for clientType {clientType}");
-                    if (prefab != null)
+                    GameObject clientGO = Instantiate(clientSO.Prefab, spawnPoint.position, Quaternion.identity);
+                    ClientData clientData = clientGO.GetComponent<ClientData>();
+                    CustomerMovement movement = clientGO.GetComponent<CustomerMovement>();
+                    if (clientData != null && movement != null)
                     {
-                        GameObject clientGO = Instantiate(prefab, spawnPoint.position, Quaternion.identity);
-                        ClientData clientData = clientGO.GetComponent<ClientData>();
-                        CustomerMovement movement = clientGO.GetComponent<CustomerMovement>();
-                        if (clientData != null && movement != null)
+                        string baseName = clientData.clientName;
+                        int nameIndex = 1;
+                        string uniqueName = baseName;
+                        while (GameManager.Instance.ClientPool.Any(c => c.clientName == uniqueName) ||
+                               ClientManager.Instance.AllClients.Any(c => c.clientName == uniqueName))
                         {
-                            string baseName = clientData.clientName;
-                            int nameIndex = 1;
-                            string uniqueName = baseName;
-                            while (GameManager.Instance.ClientPool.Any(c => c.clientName == uniqueName) ||
-                                   ClientManager.Instance.AllClients.Any(c => c.clientName == uniqueName))
-                            {
-                                uniqueName = $"{baseName}_{nameIndex++}";
-                            }
-                            clientData.clientName = uniqueName;
-                            Debug.Log($"Клиент спавнен с именем {clientData.clientName} (ID: {nextClientId}) из префаба {baseName}, уникальность проверена");
-
-                            clientData.SetClientId(nextClientId++);
-
-                            List<Employee> availableEmployees = EmployeeManager.Instance.AvailableEmployees;
-                            Employee randomEmployee = availableEmployees != null && availableEmployees.Count > 0 ?
-                                availableEmployees[Random.Range(0, availableEmployees.Count)] : null;
-                            EmployeeDataSO employeeData = randomEmployee?.Data;
-
-                            clientData.InitializeClientPreferences(clientType, randomEmployee);
-
-                            clientData.SetState(ClientData.ClientState.MovingToRegister);
-                            GameManager.Instance.ClientPool.Add(clientData);
-                            GameManager.Instance.ClientsSpawnedToday++;
-                            if (OnClientSpawned != null)
-                            {
-                                OnClientSpawned.Invoke(clientData);
-                            }
+                            uniqueName = $"{baseName}_{nameIndex++}";
                         }
-                        else
+                        clientData.clientName = uniqueName;
+                        Debug.Log($"Клиент спавнен с именем {clientData.clientName} (ID: {nextClientId}) из префаба {baseName}, уникальность проверена");
+                        clientData.SetClientId(nextClientId++);
+                        clientData.ClientDataSO = clientSO; // Установить SO
+                        List<Employee> availableEmployees = EmployeeManager.Instance.AvailableEmployees;
+                        Employee randomEmployee = availableEmployees != null && availableEmployees.Count > 0 ?
+                            availableEmployees[Random.Range(0, availableEmployees.Count)] : null;
+                        clientData.InitializeClientPreferences(); // Тип из SO
+                        clientData.SetState(ClientData.ClientState.MovingToRegister);
+                        GameManager.Instance.ClientPool.Add(clientData);
+                        GameManager.Instance.ClientsSpawnedToday++;
+                        if (OnClientSpawned != null)
                         {
-                            Debug.LogError($"ClientData or CustomerMovement missing on {clientGO.name}.");
-                            Destroy(clientGO);
+                            OnClientSpawned.Invoke(clientData);
                         }
+                    }
+                    else
+                    {
+                        Debug.LogError($"ClientData or CustomerMovement missing on {clientGO.name}.");
+                        Destroy(clientGO);
                     }
                 }
                 float delay = Random.Range(GameManager.Instance.MinSpawnDelay, GameManager.Instance.MaxSpawnDelay);
@@ -184,24 +166,7 @@ public class SpawnHandler : MonoBehaviour
         return client;
     }
 
-    private GameObject GetPrefabForType(int type)
-    {
-        Debug.Log($"GetPrefabForType: Checking type {type}, clientType1Prefabs count = {clientType1Prefabs.Count}");
-        switch (type)
-        {
-            case 1:
-                return clientType1Prefabs[Random.Range(0, clientType1Prefabs.Count)];
-            case 2:
-                return clientType2Prefabs[Random.Range(0, clientType2Prefabs.Count)];
-            case 3:
-                return clientType3Prefabs[Random.Range(0, clientType3Prefabs.Count)];
-            case 4:
-                return clientType4Prefabs[Random.Range(0, clientType4Prefabs.Count)];
-            default:
-                Debug.LogWarning($"Некорректный тип клиента: {type}, возвращается null.");
-                return null;
-        }
-    }
+    // Убрано GetPrefabForType
 
     public bool IsSpawning => isSpawning;
 }

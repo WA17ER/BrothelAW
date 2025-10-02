@@ -332,6 +332,23 @@ MonoBehaviour:
     price: 150
   - serviceName: "\u0421\u0442\u043E\u044F"
     price: 250
+  serviceStaminaCosts:
+  - serviceName: "\u0414\u0440\u043E\u0447\u043A\u0430"
+    cost: 100
+  - serviceName: "\u041C\u0438\u043D\u044C\u0435\u0442"
+    cost: 100
+  - serviceName: "\u0414\u0440\u043E\u0447\u043A\u0430 \u0421\u0438\u0441\u044C\u043A\u0430\u043C\u0438"
+    cost: 100
+  - serviceName: "\u041C\u0438\u0441\u0441\u0438\u043E\u043D\u0435\u0440\u0441\u043A\u0430\u044F"
+    cost: 100
+  - serviceName: "\u041D\u0430\u0435\u0437\u0434\u043D\u0438\u0446\u0430"
+    cost: 100
+  - serviceName: "\u0410\u043C\u0430\u0437\u043E\u043D\u043A\u0430"
+    cost: 100
+  - serviceName: "\u0420\u0430\u043A\u043E\u043C"
+    cost: 100
+  - serviceName: "\u0421\u0442\u043E\u044F"
+    cost: 100
   availableEmployees: []
   marketingEmployees: []
 --- !u!4 &337243330
@@ -1512,21 +1529,6 @@ MonoBehaviour:
   minSpawnDelay: 5
   maxSpawnDelay: 10
   maxDayDuration: 80
-  clientType1Prefabs:
-  - {fileID: 5459388358296003657, guid: 616fa2e573bfbbd43a8976f516862119, type: 3}
-  - {fileID: 5459388358296003657, guid: ec207ddd09f1d6b42acc0182e069f7fd, type: 3}
-  - {fileID: 5459388358296003657, guid: 82aefe2cb8012374ca72f41e9981aa70, type: 3}
-  clientType2Prefabs:
-  - {fileID: 5459388358296003657, guid: 9daadee3fb2a49b4ebd195e0d549e0f5, type: 3}
-  - {fileID: 5459388358296003657, guid: 59e4a9a361a4b6a4fb07a580bcc428df, type: 3}
-  - {fileID: 5459388358296003657, guid: 837995a9238186d4982d5dfdd39ce0a8, type: 3}
-  clientType3Prefabs:
-  - {fileID: 5459388358296003657, guid: 2310af6f3e1c9fb4db15ef76c1532ca3, type: 3}
-  - {fileID: 5459388358296003657, guid: 33f1b909dc4bba146910dc2982d30768, type: 3}
-  - {fileID: 5459388358296003657, guid: 9017ae342a493584cbb0f9646dd9099a, type: 3}
-  clientType4Prefabs:
-  - {fileID: 5459388358296003657, guid: 1abd7d43c7bc06e43b63f9fee34ab02f, type: 3}
-  - {fileID: 5459388358296003657, guid: 9c4210a724843c443a7cffd7fddb3810, type: 3}
   maxClientsPerDay: 40
   progressPerService: 10
   minRemainingTimeForLastClient: 20
@@ -1538,6 +1540,9 @@ MonoBehaviour:
   - {fileID: 1827852459}
   - {fileID: 264611268}
   districts: []
+  baseVisitorsList:
+  - {fileID: 11400000, guid: 47e87103deb52614ab6b91b59ac498c6, type: 2}
+  - {fileID: 11400000, guid: 490f010722147fa4299f11af833051a0, type: 2}
   onStateChange:
     m_PersistentCalls:
       m_Calls: []

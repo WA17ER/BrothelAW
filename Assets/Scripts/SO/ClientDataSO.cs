@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-
 [CreateAssetMenu(fileName = "NewClientData", menuName = "SO/ClientData")]
 public class ClientDataSO : ScriptableObject
 {
@@ -11,7 +10,6 @@ public class ClientDataSO : ScriptableObject
         Type3 = 3,
         Type4 = 4
     }
-
     public ClientType clientType;
     public float minGold;
     public float maxGold;
@@ -20,15 +18,10 @@ public class ClientDataSO : ScriptableObject
     public float sickChance = 30f; // Вероятность заболевания клиента (0–100)
     public List<SicknessSO> possibleSicknesses; // Список возможных болезней
     public int maxClientPerScene; // Максимальное количество клиентов данного типа за сцену
-
-    [System.Serializable]
-    public class Preference<T>
-    {
-        public List<T> preferences;
-        public float chance;
-    }
-
-    public Preference<EmployeeDataSO.Race> racePreference = new Preference<EmployeeDataSO.Race> { preferences = new List<EmployeeDataSO.Race>(), chance = 0f };
-    public Preference<EmployeeDataSO.BodyType> bodyPreference = new Preference<EmployeeDataSO.BodyType> { preferences = new List<EmployeeDataSO.BodyType>(), chance = 0f };
-    public Preference<EmployeeDataSO.BreastSize> breastPreference = new Preference<EmployeeDataSO.BreastSize> { preferences = new List<EmployeeDataSO.BreastSize>(), chance = 0f };
+    public GameObject Prefab;
+    public List<RaceVarietySO> varietyPreferences = new List<RaceVarietySO>();
+    public float RaceChance;
+    public float BodyTypeChance;
+    public float BreastSizeChance;
+    public float popularityGain = 5f;
 }

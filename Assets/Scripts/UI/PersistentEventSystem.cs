@@ -15,6 +15,7 @@ public class PersistentEventSystem : MonoBehaviour
             {
                 Destroy(EventSystem.current.gameObject);
             }
+            Debug.Log("PersistentEventSystem: Instance created, destroying " + (EventSystem.current?.gameObject.name ?? "null"));
         }
         else if (instance != this)
         {

@@ -64,12 +64,12 @@ MonoBehaviour:
   popularityToUnlock: 500
   clientTypes: []
   availableRaces: 
-  districtPopularity: 0
+  districtPopularity: 520
   raceUnlocks:
-  - race: 7
-    popularityThreshold: 150
-  - race: 5
-    popularityThreshold: 200
-  - race: 3
+  - raceVariety: {fileID: 11400000, guid: fbff1f7d4115e0a4e8188e5b883b7dd3, type: 2}
     popularityThreshold: 50
+  - raceVariety: {fileID: 11400000, guid: c9a1f12d6b93b734a9abee91018a20b1, type: 2}
+    popularityThreshold: 75
+  - raceVariety: {fileID: 11400000, guid: 815fd592f6a33384c8d570f6b907713d, type: 2}
+    popularityThreshold: 125
   preliminaryPopularity: 0

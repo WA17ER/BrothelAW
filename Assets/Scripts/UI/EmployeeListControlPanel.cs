@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using System.Linq;
 using TMPro;
-
 public class EmployeeListControlPanel : MonoBehaviour
 {
     [SerializeField] private GameObject employeePanelPrefab;
@@ -24,7 +23,6 @@ public class EmployeeListControlPanel : MonoBehaviour
     private bool isDestroyed = false;
     private GameObject clientOrderPanelInstance;
     private GameObject employeeInfoPanelInstance;
-
     private List<EmployeeDataSO> GetAllAvailableEmployees()
     {
         if (isDestroyed) return new List<EmployeeDataSO>();
@@ -36,11 +34,7 @@ public class EmployeeListControlPanel : MonoBehaviour
             {
                 if (employee != null && employee.Data != null)
                 {
-                    Employee.EmployeeState state = employee.GetState();
-                    if (state != Employee.EmployeeState.Healing && state != Employee.EmployeeState.Marketing && state != Employee.EmployeeState.HeavySick)
-                    {
-                        filteredEmployees.Add(employee.Data);
-                    }
+                    filteredEmployees.Add(employee.Data);
                 }
             }
             return filteredEmployees;
@@ -48,7 +42,6 @@ public class EmployeeListControlPanel : MonoBehaviour
         Debug.LogWarning("EmployeeManager.Instance не найден, возвращаем пустой список!");
         return new List<EmployeeDataSO>();
     }
-
     public void Initialize(ClientData client, ClientInteractionController controller)
     {
         if (isDestroyed) return;
@@ -83,64 +76,22 @@ public class EmployeeListControlPanel : MonoBehaviour
         PopulateEmployeeGrid();
         Debug.Log($"Инициализирована панель выбора для клиента {currentClient.clientName}");
     }
-
     void PopulateClientOrderPanel()
     {
         if (isDestroyed || clientOrderPanelInstance == null || currentClient == null) return;
-
         TMP_Text expectedEmployeeText = clientOrderPanelInstance.transform.Find("ExpectedEmployeeText")?.GetComponent<TMP_Text>();
         TMP_Text expectedRaceText = clientOrderPanelInstance.transform.Find("ExpectedRaceText")?.GetComponent<TMP_Text>();
         TMP_Text expectedBodyText = clientOrderPanelInstance.transform.Find("ExpectedBodyText")?.GetComponent<TMP_Text>();
         TMP_Text expectedBreastText = clientOrderPanelInstance.transform.Find("ExpectedBreastText")?.GetComponent<TMP_Text>();
         TMP_Text desiredServiceText = clientOrderPanelInstance.transform.Find("DesiredServiceText")?.GetComponent<TMP_Text>();
-
         if (expectedEmployeeText != null && expectedRaceText != null && expectedBodyText != null &&
             expectedBreastText != null && desiredServiceText != null)
         {
-            if (currentClient.clientType == 1)
-            {
-                expectedEmployeeText.text = "Сотрудница: None";
-                expectedRaceText.text = "Раса: None";
-                expectedBodyText.text = "Тело: None";
-                expectedBreastText.text = "Размер груди: None";
-                desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
-            }
-            else if (currentClient.clientType == 2)
-            {
-                bool useBodyType = currentClient.preferredBodyType != EmployeeDataSO.BodyType.None;
-                expectedEmployeeText.text = "Сотрудница: None";
-                expectedRaceText.text = "Раса: None";
-                expectedBodyText.text = useBodyType && currentClient.preferredBodyType != EmployeeDataSO.BodyType.None ? "Тело: " + currentClient.preferredBodyType.ToString() : "Тело: None";
-                expectedBreastText.text = !useBodyType && currentClient.preferredBreastSize != EmployeeDataSO.BreastSize.None ? "Размер груди: " + currentClient.preferredBreastSize.ToString() : "Размер груди: None";
-                desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
-            }
-            else if (currentClient.clientType == 3)
-            {
-                expectedEmployeeText.text = "Сотрудница: None";
-                expectedRaceText.text = currentClient.preferredRace != EmployeeDataSO.Race.None ? "Раса: " + currentClient.preferredRace.ToString() : "Раса: None";
-                expectedBodyText.text = "Тело: None";
-                expectedBreastText.text = "Размер груди: None";
-                desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
-            }
-            else if (currentClient.clientType == 4)
-            {
-                if (currentClient.SelectedEmployee != null && currentClient.SelectedEmployee.Data != null)
-                {
-                    EmployeeDataSO employeeData = currentClient.SelectedEmployee.Data;
-                    expectedEmployeeText.text = "Сотрудница: " + employeeData.employeeName;
-                    expectedRaceText.text = "Раса: " + employeeData.race.ToString();
-                    expectedBodyText.text = "Тело: " + employeeData.bodyType.ToString();
-                    expectedBreastText.text = "Размер груди: " + employeeData.breastSize.ToString();
-                }
-                else
-                {
-                    expectedEmployeeText.text = "Сотрудница: None";
-                    expectedRaceText.text = "Раса: None";
-                    expectedBodyText.text = "Тело: None";
-                    expectedBreastText.text = "Размер груди: None";
-                }
-                desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
-            }
+            expectedEmployeeText.text = "Сотрудница: None";
+            expectedRaceText.text = currentClient.preferredRace != EmployeeDataSO.Race.None ? "Раса: " + currentClient.preferredRace.ToString() : "Раса: None";
+            expectedBodyText.text = currentClient.preferredBodyType != EmployeeDataSO.BodyType.None ? "Тело: " + currentClient.preferredBodyType.ToString() : "Тело: None";
+            expectedBreastText.text = currentClient.preferredBreastSize != EmployeeDataSO.BreastSize.None ? "Размер груди: " + currentClient.preferredBreastSize.ToString() : "Размер груди: None";
+            desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
             Debug.Log($"Панель заказа клиента {currentClient.clientName} заполнена");
         }
         else
@@ -148,11 +99,9 @@ public class EmployeeListControlPanel : MonoBehaviour
             Debug.LogWarning("Одна или несколько ссылок на текстовые компоненты в ClientOrderPanel не найдены!");
         }
     }
-
     void PopulateEmployeeDetailPanel()
     {
         if (isDestroyed || employeeInfoPanelInstance == null || preparedEmployee == null) return;
-
         if (employeeNameText != null && employeeRaceText != null && employeeBodyTypeText != null &&
             employeeBreastSizeText != null && employeeStaminaText != null && employeeSkillText != null)
         {
@@ -177,7 +126,6 @@ public class EmployeeListControlPanel : MonoBehaviour
             Debug.LogWarning("Одна или несколько ссылок на текстовые компоненты в EmployeeInfoPanel не найдены!");
         }
     }
-
     void PopulateEmployeeGrid()
     {
         if (isDestroyed) return;
@@ -187,7 +135,6 @@ public class EmployeeListControlPanel : MonoBehaviour
             {
                 Destroy(child.gameObject);
             }
-
             List<EmployeeDataSO> availableEmployees = GetAllAvailableEmployees();
             foreach (var employee in availableEmployees)
             {
@@ -204,12 +151,12 @@ public class EmployeeListControlPanel : MonoBehaviour
                             employeeIcon.sprite = employee.listIcon;
                             employeeNameText.text = employee.employeeName;
                             panelButton.onClick.AddListener(() => OnEmployeePanelClick(employee));
-
                             Employee relatedEmployee = EmployeeManager.Instance.GetAllEmployees().FirstOrDefault(e => e.Data == employee);
-                            if (relatedEmployee != null && (relatedEmployee.GetState() == Employee.EmployeeState.OnService || relatedEmployee.GetState() == Employee.EmployeeState.HeavySick))
+                            if (relatedEmployee != null && (relatedEmployee.GetState() == Employee.EmployeeState.OnService || relatedEmployee.GetState() == Employee.EmployeeState.HeavySick || relatedEmployee.StaminaCurrent <= 0))
                             {
                                 employeeIcon.color = new Color(0.5f, 0.5f, 0.5f);
                                 employeeNameText.color = new Color(0.5f, 0.5f, 0.5f);
+                                panelButton.interactable = false;
                             }
                             Debug.Log($"Добавлена панель для сотрудницы {employee.employeeName} с иконкой, состояние: {relatedEmployee?.GetState().ToString() ?? "Не определено"}");
                         }
@@ -222,7 +169,6 @@ public class EmployeeListControlPanel : MonoBehaviour
             Debug.LogWarning("Префаб employeePanelPrefab или employeeGrid не назначен!");
         }
     }
-
     void OnEmployeePanelClick(EmployeeDataSO employee)
     {
         if (isDestroyed) return;
@@ -239,7 +185,6 @@ public class EmployeeListControlPanel : MonoBehaviour
             preparedEmployee = null;
         }
     }
-
     public void OnConfirmClick()
     {
         if (isDestroyed) return;
@@ -256,14 +201,12 @@ public class EmployeeListControlPanel : MonoBehaviour
             Destroy(gameObject);
         }
     }
-
     public void OnCancelClick()
     {
         if (isDestroyed) return;
         Destroy(gameObject);
         Debug.Log($"Кнопка Отмена нажата, панель уничтожена для клиента {currentClient?.clientName ?? "неизвестного клиента"}");
     }
-
     void OnDestroy()
     {
         isDestroyed = true;

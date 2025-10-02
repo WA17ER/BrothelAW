@@ -59,15 +59,21 @@ MonoBehaviour:
     - race: 7
       value: 5
   districtName: Main
-  popularityToUnlock: 0
-  clientTypes: []
+  popularityToUnlock: 1000
+  clientTypes:
+  - clientType: {fileID: 11400000, guid: 7da15995772720b41acfcc1dbaaa93da, type: 2}
+    multiplier: 50
+  - clientType: {fileID: 11400000, guid: fa11291c7b0ec314d8bcc9b042cb979d, type: 2}
+    multiplier: 150
+  - clientType: {fileID: 11400000, guid: b042a1019b0fac84693c73b6da711dda, type: 2}
+    multiplier: 300
   availableRaces: 0600000001000000000000000000000000000000
-  districtPopularity: 0
+  districtPopularity: 500
   raceUnlocks:
-  - race: 6
+  - raceVariety: {fileID: 11400000, guid: 61ee40d2e763083439ae74f0a8685ee1, type: 2}
     popularityThreshold: 100
-  - race: 8
-    popularityThreshold: 1000
-  - race: 9
+  - raceVariety: {fileID: 11400000, guid: d61290869a7a5804b869e900be421ef5, type: 2}
+    popularityThreshold: 300
+  - raceVariety: {fileID: 11400000, guid: 98da74fdba1134844802f7bdfeb6e36d, type: 2}
     popularityThreshold: 500
   preliminaryPopularity: 0

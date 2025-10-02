@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 public class DistrictManager : MonoBehaviour
@@ -118,13 +121,16 @@ public class DistrictManager : MonoBehaviour
             foreach (var clientTypeWithMultiplier in district.ClientTypes)
             {
                 var clientType = clientTypeWithMultiplier.ClientType;
-                int clientTypeId = gameManager.GetClientTypeId(clientType);
-                if (clientTypeId > 0 && gameManager.ExtraVisitors.ContainsKey(clientTypeId))
+                int clientTypeId = (int)clientType.clientType;
+                int additionalClients = Mathf.FloorToInt(district.DistrictPopularity / 50);
+                int currentCount = gameManager.TotalClientList.Count(c => c.clientType == (ClientDataSO.ClientType)clientTypeId);
+                int maxForType = clientType.maxClientPerScene;
+                for (int k = 0; k < additionalClients && currentCount < maxForType; k++)
                 {
-                    int additionalClients = Mathf.FloorToInt(district.DistrictPopularity / 50);
-                    gameManager.ExtraVisitors[clientTypeId] = Mathf.Min(gameManager.ExtraVisitors[clientTypeId] + additionalClients, gameManager.GetMaxClientsForType(clientTypeId));
-                    Debug.Log($"Добавлено {additionalClients} клиентов типа {clientTypeId} из района {district.DistrictName}.");
+                    gameManager.TotalClientList.Add(clientType);
+                    currentCount++;
                 }
+                Debug.Log($"Добавлено {additionalClients} клиентов типа {clientTypeId} из района {district.DistrictName}.");
             }
         }
     }
@@ -212,5 +218,63 @@ public class DistrictManager : MonoBehaviour
     public Employee GetActiveEmployee(DistrictDataSO district)
     {
         return activeEmployeeMap.ContainsKey(district) ? activeEmployeeMap[district] : null;
+    }
+
+    [ContextMenu("Generate Employee SO")]
+    public void GenerateEmployeeSO()
+    {
+        string tempPath = "Assets/Resources/TemporaryEmployee";
+        if (!Directory.Exists(tempPath))
+        {
+            Directory.CreateDirectory(tempPath);
+        }
+
+        foreach (var district in districts)
+        {
+            foreach (var unlock in district.RaceUnlocks)
+            {
+                if (district.DistrictPopularity >= unlock.PopularityThreshold)
+                {
+                    var variety = unlock.RaceVariety;
+                    if (variety == null) continue;
+
+                    EmployeeDataSO newEmp = ScriptableObject.CreateInstance<EmployeeDataSO>();
+                    newEmp.employeeName = variety.possibleNames[Random.Range(0, variety.possibleNames.Count)];
+                    newEmp.breastSize = variety.possibleBreastSizes[Random.Range(0, variety.possibleBreastSizes.Count)];
+                    newEmp.bodyType = variety.possibleBodyTypes[Random.Range(0, variety.possibleBodyTypes.Count)];
+                    newEmp.race = variety.raceName;
+                    newEmp.StaminaMax = Mathf.RoundToInt(Random.Range(variety.minStaminaMax, variety.maxStaminaMax));
+                    newEmp.sickResistance = Mathf.RoundToInt(Random.Range(variety.minSickResistance, variety.maxSickResistance));
+                    newEmp.hireCost = Mathf.RoundToInt(Random.Range(variety.minHireCost, variety.maxHireCost));
+                    newEmp.PossibleSicknesses = new List<SicknessSO>(variety.possibleSicknesses);
+                    newEmp.BaseSkills = variety.possibleSkills.ToArray();
+                    newEmp.listIcon = variety.Icon;
+                    newEmp.portraitIcon = variety.portraitIcon;
+
+                    string assetPath = Path.Combine(tempPath, $"{newEmp.employeeName}.asset").Replace("\\", "/");
+                    AssetDatabase.CreateAsset(newEmp, assetPath);
+                }
+            }
+        }
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("Generated temporary EmployeeDataSOs");
+    }
+
+    [ContextMenu("Clear Temporary Employees")]
+    public void ClearTemporaryEmployees()
+    {
+        string tempPath = "Assets/Resources/TemporaryEmployee";
+        if (Directory.Exists(tempPath))
+        {
+            string[] assets = Directory.GetFiles(tempPath, "*.asset", SearchOption.AllDirectories);
+            foreach (string assetPath in assets)
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+            Debug.Log("Cleared temporary EmployeeDataSOs");
+        }
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
     }
 }

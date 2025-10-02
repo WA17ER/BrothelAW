@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-
 public class Employee : MonoBehaviour
 {
     public enum EmployeeState
@@ -20,15 +19,14 @@ public class Employee : MonoBehaviour
         get => currentState;
         set => currentState = value;
     }
-
     private EmployeeDataSO data;
-    private Dictionary<string, (int level, int progress)> skills = new Dictionary<string, (int level, int progress)>();
+    private Dictionary<string, (int level, float progress)> skills = new Dictionary<string, (int level, float progress)>();
     private float staminaCurrent;
     private SicknessSO activeSick;
     private float healingTimeRemaining; // Время, оставшееся до выздоровления
-
+    [SerializeField] private bool isInitialized = false;
     public EmployeeDataSO Data => data;
-    public Dictionary<string, (int level, int progress)> Skills => skills;
+    public Dictionary<string, (int level, float progress)> Skills => skills;
     public float StaminaCurrent { get => staminaCurrent; set => staminaCurrent = value; }
     public float StaminaMax => data.StaminaMax;
     public SicknessSO ActiveSick { get => activeSick; set => activeSick = value; }
@@ -36,20 +34,22 @@ public class Employee : MonoBehaviour
     public EmployeeDataSO.BreastSize BreastSize => data.breastSize;
     public EmployeeDataSO.BodyType BodyType => data.bodyType;
     public EmployeeDataSO.Race Race => data.race;
-
     public void SetData(EmployeeDataSO employeeData)
     {
         data = employeeData;
-        staminaCurrent = data.StaminaMax;
-        currentState = EmployeeState.Available; // Инициализация состояния
-        foreach (var skill in data.BaseSkills)
+        if (!isInitialized)
         {
-            skills[skill] = (0, 0);
+            staminaCurrent = data.StaminaMax;
+            currentState = EmployeeState.Available; // Инициализация состояния
+            foreach (var skill in data.BaseSkills)
+            {
+                skills[skill] = (0, 0);
+            }
+            activeSick = null;
+            healingTimeRemaining = 0f;
+            isInitialized = true;
         }
-        activeSick = null;
-        healingTimeRemaining = 0f;
     }
-
     public EmployeeState GetState()
     {
         if (activeSick != null && healingTimeRemaining > 0)
@@ -57,10 +57,9 @@ public class Employee : MonoBehaviour
         if (activeSick != null && activeSick.isUnavailable)
             return EmployeeState.HeavySick;
         if (activeSick != null)
-            return EmployeeState.Sick;
+            return EmployeeState.Sick;        
         return currentState;
     }
-
     public void SetState(EmployeeState state)
     {
         if (data == null)
@@ -71,7 +70,6 @@ public class Employee : MonoBehaviour
         currentState = state;
         Debug.Log($"Сотрудница {data.employeeName} меняет состояние на {state}.");
     }
-
     public void Heal()
     {
         if (activeSick == null)
@@ -83,7 +81,6 @@ public class Employee : MonoBehaviour
         SetState(EmployeeState.Healing);
         Debug.Log($"Лечение {data.employeeName} начато, длительность: {healingTimeRemaining}");
     }
-
     public void ProgressHealing()
     {
         if (activeSick == null || healingTimeRemaining <= 0)
@@ -102,5 +99,27 @@ public class Employee : MonoBehaviour
             }
             Debug.Log($"Прогресс лечения {data.employeeName}, осталось: {healingTimeRemaining}");
         }
+    }
+
+    public string GetSkillLevelString(string skill)
+    {
+        if (!Skills.ContainsKey(skill)) return "0";
+        var (level, _) = Skills[skill];
+        return level >= 10 ? "max" : level.ToString();
+    }
+
+    public bool CanLevelUpSkill(string skill)
+    {
+        if (!Skills.ContainsKey(skill)) return true;
+        var (level, _) = Skills[skill];
+        return level < 10;
+    }
+
+    public void LevelUpSkill(string skill)
+    {
+        if (!CanLevelUpSkill(skill)) return;
+        var (level, progress) = Skills.ContainsKey(skill) ? Skills[skill] : (0, 0);
+        level += 1;
+        Skills[skill] = (level, 0);
     }
 }

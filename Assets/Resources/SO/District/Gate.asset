@@ -59,7 +59,7 @@ MonoBehaviour:
     - race: 7
       value: 3
   districtName: Gate
-  popularityToUnlock: 200
+  popularityToUnlock: 500
   clientTypes:
   - clientType: {fileID: 11400000, guid: 47e87103deb52614ab6b91b59ac498c6, type: 2}
     multiplier: 10
@@ -68,12 +68,12 @@ MonoBehaviour:
   - clientType: {fileID: 11400000, guid: 233d9455a6abb184995e35cde17dbe43, type: 2}
     multiplier: 100
   availableRaces: 000000000400000007000000
-  districtPopularity: 0
+  districtPopularity: 500
   raceUnlocks:
-  - race: 0
+  - raceVariety: {fileID: 11400000, guid: ede63e72ba4f3fa4abed1622cb7a88bf, type: 2}
     popularityThreshold: 0
-  - race: 7
+  - raceVariety: {fileID: 11400000, guid: fbff1f7d4115e0a4e8188e5b883b7dd3, type: 2}
     popularityThreshold: 30
-  - race: 4
+  - raceVariety: {fileID: 11400000, guid: c9a1f12d6b93b734a9abee91018a20b1, type: 2}
     popularityThreshold: 100
   preliminaryPopularity: 0

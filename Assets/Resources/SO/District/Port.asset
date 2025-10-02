@@ -66,14 +66,12 @@ MonoBehaviour:
   - clientType: {fileID: 11400000, guid: 2545e8440eae1c547aacfc425f673e5e, type: 2}
     multiplier: 20
   availableRaces: 
-  districtPopularity: 0
+  districtPopularity: 500
   raceUnlocks:
-  - race: 0
-    popularityThreshold: 0
-  - race: 1
-    popularityThreshold: 50
-  - race: 2
+  - raceVariety: {fileID: 11400000, guid: d0db4d9e4a4a3e643ad610e9165d0776, type: 2}
+    popularityThreshold: 30
+  - raceVariety: {fileID: 11400000, guid: c495b3d1949ceea4c8566e77b72c8124, type: 2}
+    popularityThreshold: 75
+  - raceVariety: {fileID: 11400000, guid: e901c4b314ed464418cbe718015585f2, type: 2}
     popularityThreshold: 100
-  - race: 10
-    popularityThreshold: 500
   preliminaryPopularity: 0

@@ -1,33 +1,39 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
 [System.Serializable]
 public class ServicePrice
 {
     public string serviceName;
     public float price;
 }
-
+[System.Serializable]
+public class ServiceStaminaCost
+{
+    public string serviceName;
+    public float cost;
+}
 public class EmployeeManager : MonoBehaviour
 {
     public static EmployeeManager Instance { get; private set; }
     [SerializeField] private EmployeeBonusesSO bonuses;
     [SerializeField] private List<ServicePrice> servicePrices = new List<ServicePrice>();
+    [SerializeField] private List<ServiceStaminaCost> serviceStaminaCosts = new List<ServiceStaminaCost>();
     [SerializeField] private List<Employee> availableEmployees = new List<Employee>();
     private List<Employee> sickEmployees = new List<Employee>();
     private List<Employee> healingEmployees = new List<Employee>();
     private List<Employee> onServiceEmployees = new List<Employee>();
+   
     [SerializeField] private List<Employee> marketingEmployees = new List<Employee>();
     public List<Employee> AvailableEmployees => availableEmployees;
     public List<Employee> SickEmployees => sickEmployees;
     public List<Employee> HealingEmployees => healingEmployees;
     public List<Employee> OnServiceEmployees => onServiceEmployees;
+
     public List<Employee> MarketingEmployees => marketingEmployees;
     public List<ServicePrice> ServicePrices => servicePrices;
-
     private Dictionary<string, float> servicePriceDict;
-
+    private Dictionary<string, float> serviceStaminaDict;
     private void Awake()
     {
         if (Instance == null)
@@ -41,15 +47,14 @@ public class EmployeeManager : MonoBehaviour
             return;
         }
         InitializeServicePrices();
+        InitializeServiceStaminaCosts();
         Debug.Log($"EmployeeManager Awake: Количество сотрудников после загрузки - {availableEmployees.Count + sickEmployees.Count + healingEmployees.Count + onServiceEmployees.Count + marketingEmployees.Count}");
     }
-
     private void Start()
     {
         SyncWithGameState();
         Debug.Log("EmployeeManager Start: Синхронизация с GameStateManager выполнена.");
     }
-
     private void InitializeServicePrices()
     {
         servicePriceDict = new Dictionary<string, float>();
@@ -61,7 +66,17 @@ public class EmployeeManager : MonoBehaviour
             }
         }
     }
-
+    private void InitializeServiceStaminaCosts()
+    {
+        serviceStaminaDict = new Dictionary<string, float>();
+        foreach (var service in serviceStaminaCosts)
+        {
+            if (!string.IsNullOrEmpty(service.serviceName))
+            {
+                serviceStaminaDict[service.serviceName] = service.cost;
+            }
+        }
+    }
     public void SyncWithGameState()
     {
         if (GameStateManager.Instance != null)
@@ -76,13 +91,12 @@ public class EmployeeManager : MonoBehaviour
             Debug.LogWarning("GameStateManager.Instance не найден при синхронизации.");
         }
     }
-
     public void SyncEmployees(List<Employee> employees)
     {
         availableEmployees.Clear();
         sickEmployees.Clear();
         healingEmployees.Clear();
-        onServiceEmployees.Clear();
+        onServiceEmployees.Clear();       
         marketingEmployees.Clear();
         foreach (var employee in employees)
         {
@@ -102,7 +116,6 @@ public class EmployeeManager : MonoBehaviour
             Debug.Log("Список сотрудниц в EmployeeManager пуст.");
         }
     }
-
     public void AddEmployees(List<Employee> employees)
     {
         foreach (var employee in employees)
@@ -110,7 +123,6 @@ public class EmployeeManager : MonoBehaviour
             MoveEmployeeToList(employee);
         }
     }
-
     public void MoveEmployeeToList(Employee employee)
     {
         availableEmployees.Remove(employee);
@@ -118,6 +130,7 @@ public class EmployeeManager : MonoBehaviour
         healingEmployees.Remove(employee);
         onServiceEmployees.Remove(employee);
         marketingEmployees.Remove(employee);
+        Debug.Log($"MoveEmployeeToList called for {employee.Data.employeeName}, current state: {employee.GetState()}");
         switch (employee.GetState())
         {
             case Employee.EmployeeState.Available:
@@ -132,6 +145,7 @@ public class EmployeeManager : MonoBehaviour
                 break;
             case Employee.EmployeeState.OnService:
                 onServiceEmployees.Add(employee);
+                Debug.Log($"Перемещение {employee.Data.employeeName} в onServiceEmployees");
                 break;
             case Employee.EmployeeState.HeavySick:
                 sickEmployees.Add(employee);
@@ -144,13 +158,11 @@ public class EmployeeManager : MonoBehaviour
         }
         Debug.Log($"Сотрудница {employee.Data.employeeName} перемещена в {employee.GetState()}.");
     }
-
     public void MoveEmployeeToList(Employee employee, Employee.EmployeeState state)
     {
         employee.SetState(state);
         MoveEmployeeToList(employee);
     }
-
     public string GetRandomService()
     {
         if (servicePriceDict == null || servicePriceDict.Count == 0)
@@ -161,22 +173,29 @@ public class EmployeeManager : MonoBehaviour
         int index = Random.Range(0, servicePriceDict.Count);
         return servicePriceDict.Keys.ElementAt(index);
     }
-
     public float AssignEmployee(ClientData client, Employee employee)
     {
         Debug.Log($"AssignEmployee: client = {client?.clientName ?? "null"}, employee = {employee?.Data.employeeName ?? "null"}");
         Debug.Log($"Проверка доступности {employee.Data.employeeName}: {employee.GetState()}");
+        if (employee.StaminaCurrent <= 0)
+        {
+            Debug.LogWarning($"Сотрудница {employee.Data.employeeName} без стамины, не доступна для назначения.");
+            return 0f;
+        }
         if (!availableEmployees.Contains(employee))
         {
             Debug.LogWarning($"Сотрудница {employee?.Data.employeeName ?? "null"} не доступна для назначения.");
             return 0f;
         }
+        float staminaCost = serviceStaminaDict.ContainsKey(client.RequestedService) ? serviceStaminaDict[client.RequestedService] : 1f;
+        
         float reward = CalculateReward(client, employee);
-        employee.StaminaCurrent -= 1f;
-        MoveEmployeeToList(employee, Employee.EmployeeState.OnService);
+        employee.SetState(Employee.EmployeeState.OnService);
+        Debug.Log("State set to OnService for " + employee.Data.employeeName);
+        MoveEmployeeToList(employee);
+        Debug.Log("After assignment, state for " + employee.Data.employeeName + ": " + employee.GetState());
         return reward;
     }
-
     public float CalculateReward(ClientData client, Employee employee)
     {
         Debug.Log($"CalculateReward: client = {client?.clientName ?? "null"}, employee = {employee?.Data.employeeName ?? "null"}, RequestedService = {client?.RequestedService ?? "null"}");
@@ -216,7 +235,6 @@ public class EmployeeManager : MonoBehaviour
         Debug.Log($"Рассчитана награда для клиента {client?.clientName ?? "null"} с сотрудницей {employee?.Data.employeeName ?? "null"}: {reward}");
         return reward;
     }
-
     public void CompleteService(Employee employee, string service, bool hasSickness)
     {
         if (employee == null)
@@ -252,14 +270,34 @@ public class EmployeeManager : MonoBehaviour
         {
             employee.SetState(Employee.EmployeeState.Available);
         }
+        // Deduct stamina cost
+        float staminaCost = serviceStaminaDict.ContainsKey(service) ? serviceStaminaDict[service] : 1f;
+        Debug.Log($"Stamina cost for {service}: {staminaCost}");
+        Debug.Log($"Вычет стамины для {employee.Data.employeeName}: {staminaCost}, текущая: {employee.StaminaCurrent}");
+        employee.StaminaCurrent -= staminaCost;
+        Debug.Log($"После вычета стамины для {employee.Data.employeeName}: {employee.StaminaCurrent}");
+        if (employee.StaminaCurrent <= 0)
+        {
+            employee.StaminaCurrent = 0;
+            Debug.Log($"Сотрудница {employee.Data.employeeName} без стамины, StaminaCurrent = 0");
+        }
         if (employee.Skills.ContainsKey(service))
         {
             var skill = employee.Skills[service];
-            skill.progress += 1;
-            if (skill.progress >= 5)
+            skill.progress += employee.Data.progressionSpeed;
+            Debug.Log($"Сотрудница {employee.Data.employeeName} повысила прогрессию навыка {service} до {skill.progress}.");
+            if (skill.progress >= 100)
             {
                 skill.level += 1;
-                skill.progress = 0;
+                if (skill.level > 10)
+                {
+                    skill.level = 10;
+                    skill.progress = 0;
+                }
+                else
+                {
+                    skill.progress -= 100;
+                }
                 Debug.Log($"Сотрудница {employee.Data.employeeName} повысила уровень навыка {service} до {skill.level}.");
             }
             employee.Skills[service] = skill;
@@ -271,7 +309,6 @@ public class EmployeeManager : MonoBehaviour
         MoveEmployeeToList(employee);
         Debug.Log($"Сотрудница {employee.Data.employeeName} состояние после услуги: {employee.GetState()}");
     }
-
     public void EndDayUpdate()
     {
         List<Employee> healingCopy = new List<Employee>(healingEmployees);
@@ -289,9 +326,14 @@ public class EmployeeManager : MonoBehaviour
                 }
             }
         }
+        // Reset stamina for all employees
+        foreach (var employee in GetAllEmployees())
+        {
+            employee.StaminaCurrent = employee.StaminaMax;
+            Debug.Log($"Сброс стамины для {employee.Data.employeeName}: {employee.StaminaCurrent}");
+        }
         Debug.Log($"Конец дня: обработано {healingEmployees.Count} сотрудниц на лечении, {marketingEmployees.Count} на рекламе.");
     }
-
     public List<Employee> GetAllEmployees()
     {
         List<Employee> allEmployees = new List<Employee>();
@@ -302,7 +344,6 @@ public class EmployeeManager : MonoBehaviour
         allEmployees.AddRange(marketingEmployees);
         return allEmployees;
     }
-
     public EmployeeBonusesSO GetBonuses()
     {
         return bonuses;

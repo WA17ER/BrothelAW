@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
-
 public class ClientData : MonoBehaviour
 {
     public enum ClientState
@@ -22,7 +21,7 @@ public class ClientData : MonoBehaviour
     [SerializeField] private Employee selectedEmployee;
     public Employee SelectedEmployee { get => selectedEmployee; set => selectedEmployee = value; }
     [SerializeField] private ClientDataSO clientDataSO;
-    public ClientDataSO ClientDataSO { get => clientDataSO; }
+    public ClientDataSO ClientDataSO { get => clientDataSO; set => clientDataSO = value; }
     public ClientState State { get; private set; }
     public float waitTime { get; set; } // Синхронизировано с ClientManager
     public int clientType { get; private set; }
@@ -30,6 +29,7 @@ public class ClientData : MonoBehaviour
     public EmployeeDataSO.BodyType preferredBodyType { get; private set; }
     public EmployeeDataSO.Race preferredRace { get; private set; }
     public float clientGold { get; private set; }
+    public float popularityGain { get; private set; }
     public int ClientId { get; private set; } // Уникальный ID клиента
     private const float WaitingTime = 10f;
     private const float OnChairTime = 20f;
@@ -38,7 +38,6 @@ public class ClientData : MonoBehaviour
     [SerializeField] private UnityEvent<ClientData> onStateChanged;
     public UnityEvent<ClientData> OnStateChanged => onStateChanged;
     public bool wantsSpecificEmployee { get; private set; } // Новый параметр
-
     private void Awake()
     {
         State = ClientState.MovingToRegister;
@@ -46,17 +45,15 @@ public class ClientData : MonoBehaviour
         selectedEmployee = null;
         wantsSpecificEmployee = false; // Дефолтное значение
     }
-
-    public void InitializeClientPreferences(int type, Employee randomEmployee = null)
+    public void InitializeClientPreferences()
     {
-        clientType = type;
-        EmployeeDataSO employeeData = randomEmployee?.Data;
         if (clientDataSO != null)
         {
             float step = clientDataSO.goldStep;
             int rangeMin = Mathf.CeilToInt(clientDataSO.minGold / step);
             int rangeMax = Mathf.FloorToInt(clientDataSO.maxGold / step);
             clientGold = Random.Range(rangeMin, rangeMax + 1) * step;
+            popularityGain = clientDataSO.popularityGain;
             if (clientDataSO.possibleSicknesses != null && clientDataSO.possibleSicknesses.Count > 0 && Random.Range(0f, 100f) < clientDataSO.sickChance)
             {
                 ActiveSick = clientDataSO.possibleSicknesses[Random.Range(0, clientDataSO.possibleSicknesses.Count)];
@@ -68,87 +65,60 @@ public class ClientData : MonoBehaviour
         }
         else
         {
-            clientGold = 100f; // Fallback value
+            clientGold = 100f;
             ActiveSick = null;
             Debug.LogWarning($"ClientDataSO не задано для клиента {clientName}. Использовано золото по умолчанию: {clientGold}, Болезнь: none");
         }
-        bool isSpecialRace = employeeData != null && (employeeData.race == EmployeeDataSO.Race.Допельгангер || employeeData.race == EmployeeDataSO.Race.Суккуб || employeeData.race == EmployeeDataSO.Race.Ангел);
 
         // Сброс предпочтений перед инициализацией
         RequestedService = null;
-        preferredRace = EmployeeDataSO.Race.Человек; // Дефолтное значение
-        preferredBodyType = EmployeeDataSO.BodyType.Обычное; // Дефолтное значение
-        preferredBreastSize = EmployeeDataSO.BreastSize.A; // Дефолтное значение
-        wantsSpecificEmployee = (clientType == 4); // Установка в true только для типа 4
+        preferredRace = EmployeeDataSO.Race.None;
+        preferredBodyType = EmployeeDataSO.BodyType.None;
+        preferredBreastSize = EmployeeDataSO.BreastSize.None;
+        wantsSpecificEmployee = false;
+        SpecificEmployee = null;
 
-        // Генерация предпочтений в зависимости от типа клиента
-        switch (clientType)
+        // Услуга из глобального списка
+        RequestedService = EmployeeManager.Instance.GetRandomService();
+
+        // Выбор случайного RaceVarietySO
+        if (clientDataSO.varietyPreferences.Count > 0)
         {
-            case 1: // Только услуга
-                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employeeData?.BaseSkills.Length > 0 ? employeeData.BaseSkills[Random.Range(0, employeeData.BaseSkills.Length)] : EmployeeManager.Instance.GetRandomService();
-                preferredRace = EmployeeDataSO.Race.None; // Сброс к None
-                preferredBodyType = EmployeeDataSO.BodyType.None; // Сброс к None
-                preferredBreastSize = EmployeeDataSO.BreastSize.None; // Сброс к None
-                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: не заданы");
-                break;
+            RaceVarietySO selectedVariety = clientDataSO.varietyPreferences[Random.Range(0, clientDataSO.varietyPreferences.Count)];
 
-            case 2: // Услуга + один параметр (тело или грудь)
-                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employeeData?.BaseSkills.Length > 0 ? employeeData.BaseSkills[Random.Range(0, employeeData.BaseSkills.Length)] : EmployeeManager.Instance.GetRandomService();
-                if (Random.value < 0.5f)
-                {
-                    preferredBreastSize = employeeData?.breastSize ?? EmployeeDataSO.BreastSize.None;
-                    preferredBodyType = EmployeeDataSO.BodyType.None; // Сброс
-                }
-                else
-                {
-                    preferredBodyType = employeeData?.bodyType ?? EmployeeDataSO.BodyType.None;
-                    preferredBreastSize = EmployeeDataSO.BreastSize.None; // Сброс
-                }
-                preferredRace = EmployeeDataSO.Race.None; // Сброс
-                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован на основе сотрудницы {employeeData?.employeeName}: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: {(preferredBreastSize != EmployeeDataSO.BreastSize.None ? $"BreastSize = {preferredBreastSize}" : $"BodyType = {preferredBodyType}")}");
-                break;
+            // Race
+            if (clientDataSO.RaceChance > Random.value)
+            {
+                preferredRace = selectedVariety.raceName;
+            }
 
-            case 3: // Услуга + раса
-                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employeeData?.BaseSkills.Length > 0 ? employeeData.BaseSkills[Random.Range(0, employeeData.BaseSkills.Length)] : EmployeeManager.Instance.GetRandomService();
-                preferredRace = employeeData?.race ?? EmployeeDataSO.Race.None;
-                preferredBodyType = EmployeeDataSO.BodyType.None; // Сброс
-                preferredBreastSize = EmployeeDataSO.BreastSize.None; // Сброс
-                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован на основе сотрудницы {employeeData?.employeeName}: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: Race = {preferredRace}");
-                break;
+            // BodyType
+            if (clientDataSO.BodyTypeChance > Random.value && selectedVariety.possibleBodyTypes.Count > 0)
+            {
+                preferredBodyType = selectedVariety.possibleBodyTypes[Random.Range(0, selectedVariety.possibleBodyTypes.Count)];
+            }
 
-            case 4: // Все параметры
-                SpecificEmployee = randomEmployee;
-                RequestedService = isSpecialRace ? EmployeeManager.Instance.GetRandomService() : employeeData?.BaseSkills.Length > 0 ? employeeData.BaseSkills[Random.Range(0, employeeData.BaseSkills.Length)] : EmployeeManager.Instance.GetRandomService();
-                preferredBreastSize = employeeData?.breastSize ?? EmployeeDataSO.BreastSize.None;
-                preferredBodyType = employeeData?.bodyType ?? EmployeeDataSO.BodyType.None;
-                preferredRace = employeeData?.race ?? EmployeeDataSO.Race.None;
-                Debug.Log($"Клиент {clientName} (Тип {clientType}) инициализирован: Конкретная сотрудница = {employeeData?.employeeName}, Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: Race = {preferredRace}, BodyType = {preferredBodyType}, BreastSize = {preferredBreastSize}");
-                break;
-
-            default:
-                RequestedService = EmployeeManager.Instance.GetRandomService();
-                preferredRace = EmployeeDataSO.Race.None;
-                preferredBodyType = EmployeeDataSO.BodyType.None;
-                preferredBreastSize = EmployeeDataSO.BreastSize.None;
-                Debug.LogWarning($"Неизвестный тип клиента {clientType} для {clientName}, предпочтения установлены по умолчанию: Услуга = {RequestedService}");
-                break;
+            // BreastSize
+            if (clientDataSO.BreastSizeChance > Random.value && selectedVariety.possibleBreastSizes.Count > 0)
+            {
+                preferredBreastSize = selectedVariety.possibleBreastSizes[Random.Range(0, selectedVariety.possibleBreastSizes.Count)];
+            }
         }
-    }
 
+        Debug.Log($"Клиент {clientName} инициализирован: Услуга = {RequestedService}, Золото = {clientGold}, Болезнь = {ActiveSick?.SickName ?? "none"}, Предпочтения: Race = {preferredRace}, BodyType = {preferredBodyType}, BreastSize = {preferredBreastSize}");
+    }
     public void SetState(ClientState newState)
     {
         State = newState;
         Debug.Log($"Состояние клиента {clientName} (ID: {ClientId}) изменено на {newState}");
         onStateChanged?.Invoke(this);
     }
-
     public void SetTargetChair(Transform chairBottomPoint)
     {
         targetChair = chairBottomPoint;
         Debug.Log($"Клиент {clientName} (ID: {ClientId}) получил цель BottomPoint стула: {chairBottomPoint?.parent.name} на позиции {chairBottomPoint?.position}");
         SetState(ClientData.ClientState.OnOccupyChair);
     }
-
     [ContextMenu("Ожидать")]
     public void SendToChair()
     {
@@ -173,7 +143,7 @@ public class ClientData : MonoBehaviour
         Debug.Log($"Выбран BottomPoint стула {chair.name} для клиента {clientName} (ID: {ClientId}).");
         SetTargetChair(bottomPoint); // Используем SetTargetChair для установки состояния OnOccupyChair
     }
-
+    [ContextMenu("Назначить сотрудницу")]
     [ContextMenu("Назначить сотрудницу")]
     public void AssignEmployee()
     {
@@ -196,28 +166,36 @@ public class ClientData : MonoBehaviour
         bool isSpecialRace = selectedEmployee.Race == EmployeeDataSO.Race.Допельгангер || selectedEmployee.Race == EmployeeDataSO.Race.Суккуб || selectedEmployee.Race == EmployeeDataSO.Race.Ангел;
         if (!isSpecialRace)
         {
-            if (!selectedEmployee.Skills.ContainsKey(RequestedService) && clientType != 4)
+            if (!selectedEmployee.Skills.ContainsKey(RequestedService))
             {
                 Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал услугу {RequestedService}, сотрудница {selectedEmployee.Data.employeeName} не поддерживает эту услугу.");
                 return;
             }
-            if (clientType == 2 && selectedEmployee.BreastSize != preferredBreastSize && selectedEmployee.BodyType != preferredBodyType)
-            {
-                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал BreastSize: {preferredBreastSize} или BodyType: {preferredBodyType}, сотрудница {selectedEmployee.Data.employeeName} имеет BreastSize: {selectedEmployee.BreastSize}, BodyType: {selectedEmployee.BodyType}.");
-                return;
-            }
-            if (clientType == 3 && selectedEmployee.Race != preferredRace)
+            if (preferredRace != EmployeeDataSO.Race.None && selectedEmployee.Race != preferredRace)
             {
                 Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал Race: {preferredRace}, сотрудница {selectedEmployee.Data.employeeName} имеет Race: {selectedEmployee.Race}.");
                 return;
             }
-            if (clientType == 4 && selectedEmployee != SpecificEmployee)
+            if (preferredBodyType != EmployeeDataSO.BodyType.None && selectedEmployee.BodyType != preferredBodyType)
             {
-                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал сотрудницу {SpecificEmployee.Data.employeeName}, выбрана {selectedEmployee.Data.employeeName}.");
+                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал BodyType: {preferredBodyType}, сотрудница {selectedEmployee.Data.employeeName} имеет BodyType: {selectedEmployee.BodyType}.");
+                return;
+            }
+            if (preferredBreastSize != EmployeeDataSO.BreastSize.None && selectedEmployee.BreastSize != preferredBreastSize)
+            {
+                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал BreastSize: {preferredBreastSize}, сотрудница {selectedEmployee.Data.employeeName} имеет BreastSize: {selectedEmployee.BreastSize}.");
                 return;
             }
         }
-        Debug.Log($"Проверка соответствия для клиента {clientName} (ID: {ClientId}, Тип {clientType}): Услуга = {RequestedService}, BreastSize = {selectedEmployee.BreastSize}/{preferredBreastSize}, BodyType = {selectedEmployee.BodyType}/{preferredBodyType}, Race = {selectedEmployee.Race}/{preferredRace}, Выбрана сотрудница: {selectedEmployee.Data.employeeName}");
+        else
+        {
+            if (!selectedEmployee.Skills.ContainsKey(RequestedService))
+            {
+                Debug.LogWarning($"Клиент {clientName} (ID: {ClientId}) ожидал услугу {RequestedService}, сотрудница {selectedEmployee.Data.employeeName} не поддерживает эту услугу.");
+                return;
+            }
+        }
+        Debug.Log($"Проверка соответствия для клиента {clientName} (ID: {ClientId}): Услуга = {RequestedService}, BreastSize = {selectedEmployee.BreastSize}/{preferredBreastSize}, BodyType = {selectedEmployee.BodyType}/{preferredBodyType}, Race = {selectedEmployee.Race}/{preferredRace}, Выбрана сотрудница: {selectedEmployee.Data.employeeName}");
         float reward = EmployeeManager.Instance.AssignEmployee(this, selectedEmployee);
         if (clientGold >= reward)
         {
@@ -233,7 +211,6 @@ public class ClientData : MonoBehaviour
             Debug.LogWarning($"У клиента {clientName} (ID: {ClientId}) недостаточно золота. Требуется: {reward}, доступно: {clientGold}.");
         }
     }
-
     public void ClearChair()
     {
         if (targetChair != null)
@@ -243,7 +220,6 @@ public class ClientData : MonoBehaviour
             targetChair = null;
         }
     }
-
     // Метод для установки ClientId (вызывается из SpawnHandler)
     public void SetClientId(int id)
     {

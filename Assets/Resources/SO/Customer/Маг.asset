@@ -19,16 +19,24 @@ MonoBehaviour:
   stepPerWeek: 20
   sickChance: 70
   possibleSicknesses:
-  - {fileID: 11400000, guid: ec18cf327a0bfd04b8a668461db024c0, type: 2}
-  - {fileID: 11400000, guid: c2e007130b6d4c3478b94295c69ae41d, type: 2}
-  - {fileID: 11400000, guid: b0b2d368b3ece024e8433c0fbec4cc84, type: 2}
+  - {fileID: 11400000, guid: dcc6a4485dd6442469a81d5f8ec92e86, type: 2}
+  - {fileID: 11400000, guid: 11b1b42c0b559d547ba74f80bd2f1c7f, type: 2}
+  - {fileID: 11400000, guid: 5914da81c60420e4e9b0af81e51095bf, type: 2}
+  - {fileID: 11400000, guid: f58c4b959c927d24898f4e989f540e2f, type: 2}
+  - {fileID: 11400000, guid: 3f38897970a31774689dd61b0e5be73c, type: 2}
+  - {fileID: 11400000, guid: acbad3ffdf581e346a2af56bd7bf9aaa, type: 2}
+  - {fileID: 11400000, guid: be8a1a06b04333e4fb92d380b62674a6, type: 2}
+  - {fileID: 11400000, guid: 587a55687be4c124f95071ca888797d1, type: 2}
+  - {fileID: 11400000, guid: 18fc4b238754bd54c889c373e9b1b9c1, type: 2}
+  - {fileID: 11400000, guid: c1cbde4de3a9eaa4e83deb25036aec50, type: 2}
+  - {fileID: 11400000, guid: c8929e76e31ee674ba90e2aa285358d7, type: 2}
+  - {fileID: 11400000, guid: 3676a81da26a0aa4185648f545ae74dd, type: 2}
   maxClientPerScene: 5
-  racePreference:
-    preferences: 000000000300000001000000
-    chance: 50
-  bodyPreference:
-    preferences: 02000000000000000300000006000000
-    chance: 50
-  breastPreference:
-    preferences: 00000000010000000200000003000000
-    chance: 0
+  Prefab: {fileID: 5459388358296003657, guid: 9daadee3fb2a49b4ebd195e0d549e0f5, type: 3}
+  varietyPreferences:
+  - {fileID: 11400000, guid: fbff1f7d4115e0a4e8188e5b883b7dd3, type: 2}
+  - {fileID: 11400000, guid: c495b3d1949ceea4c8566e77b72c8124, type: 2}
+  - {fileID: 11400000, guid: 61ee40d2e763083439ae74f0a8685ee1, type: 2}
+  RaceChance: 0.5
+  BodyTypeChance: 0.5
+  BreastSizeChance: 0.5

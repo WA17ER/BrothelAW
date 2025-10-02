@@ -117,10 +117,9 @@ public class RacePreference
 [System.Serializable]
 public class RaceUnlock
 {
-    [SerializeField] private Race race;
+    [SerializeField] private RaceVarietySO raceVariety;
     [SerializeField] private int popularityThreshold;
-
-    public Race Race => race;
+    public RaceVarietySO RaceVariety => raceVariety;
     public int PopularityThreshold => popularityThreshold;
 }
 

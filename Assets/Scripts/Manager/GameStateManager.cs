@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 public class GameStateManager : MonoBehaviour
@@ -35,56 +36,32 @@ public class GameStateManager : MonoBehaviour
     }
     private void Start()
     {
-        Debug.Log($"GameStateManager Start: dayCount = {dayCount}");
-        if (dayCount == 0 || dayCount == 1) // Проверка первого запуска
+        if (dayCount == 0 || dayCount == 1)
         {
-            Debug.Log("Очистка популярности районов: первый запуск обнаружен (dayCount = 0 или 1)");
             SetTemporaryPopularity(0f);
             if (DistrictManager.Instance != null)
             {
                 foreach (var district in DistrictManager.Instance.GetDistricts())
                 {
-                    Debug.Log($"Очистка District {district.DistrictName}: DistrictPopularity = {district.DistrictPopularity}, PreliminaryPopularity = {district.PreliminaryPopularity}");
                     district.DistrictPopularity = 0;
                     district.PreliminaryPopularity = 0;
-                    Debug.Log($"После очистки District {district.DistrictName}: DistrictPopularity = {district.DistrictPopularity}, PreliminaryPopularity = {district.PreliminaryPopularity}");
                 }
-                Debug.Log("Очистка популярности для всех районов завершена");
             }
-            else
-            {
-                Debug.LogWarning("DistrictManager.Instance не найден при попытке очистки популярности");
-            }
-        }
-        else
-        {
-            Debug.Log($"Очистка не выполнена: dayCount = {dayCount}");
         }
     }
     private void LoadEmployees()
     {
-        Debug.Log($"GameStateManager LoadEmployees: Начало загрузки сотрудников, текущий список: {employees.Count}");
         if (employees.Count == 0)
         {
-            // Загрузка всех EmployeeDataSO из папки Resources/Employees
-            EmployeeDataSO[] employeeDataSOs = Resources.LoadAll<EmployeeDataSO>("Employees");
-            if (employeeDataSOs != null && employeeDataSOs.Length > 0)
+            var employeeDataSOs = Resources.LoadAll<EmployeeDataSO>("Employees");
+            employees.AddRange(employeeDataSOs.Where(data => data != null).Select(data =>
             {
-                foreach (var data in employeeDataSOs)
-                {
-                    GameObject employeeObj = new GameObject(data.employeeName); // Используем имя из данных
-                    Employee employee = employeeObj.AddComponent<Employee>();
-                    employee.SetData(data); // Установка данных
-                    DontDestroyOnLoad(employeeObj); // Сохранение между сценами
-                    employees.Add(employee);
-                    Debug.Log($"Загружен сотрудник: {data.employeeName}");
-                }
-                Debug.Log($"Загружено сотрудников: {employees.Count}");
-            }
-            else
-            {
-                Debug.LogWarning("Ни один EmployeeDataSO не найден в папке Resources/Employees.");
-            }
+                var employeeObj = new GameObject(data.employeeName);
+                var employee = employeeObj.AddComponent<Employee>();
+                employee.SetData(data);
+                DontDestroyOnLoad(employeeObj);
+                return employee;
+            }));
         }
     }
     public void UpdateGold(float newGold)

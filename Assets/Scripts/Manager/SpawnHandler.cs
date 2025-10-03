@@ -84,72 +84,55 @@ public class SpawnHandler : MonoBehaviour
 
     private IEnumerator SpawnClients()
     {
-        Debug.Log($"SpawnClients: Initial delay, isDayPaused = {GameManager.Instance.IsDayPaused}, RemainingTime = {GameManager.Instance.MaxDayDuration - (Time.time - GameManager.Instance.DayStartTime)}");
         yield return new WaitForSeconds(Random.Range(10f, 20f));
         int totalClientsToSpawn = GameManager.Instance.TotalClients;
-        Debug.Log($"SpawnClients: Начало спавна, TotalClients = {totalClientsToSpawn}, availableVisitors count: {availableVisitors.Count}");
         while (isSpawning && GameManager.Instance.ClientsSpawnedToday < totalClientsToSpawn)
         {
-            Debug.Log($"SpawnClients: Loop check, isDayPaused = {GameManager.Instance.IsDayPaused}, RemainingTime = {GameManager.Instance.MaxDayDuration - (Time.time - GameManager.Instance.DayStartTime)}");
             if (!GameManager.Instance.IsDayPaused && (GameManager.Instance.MaxDayDuration - (Time.time - GameManager.Instance.DayStartTime)) > GameManager.Instance.MinRemainingTimeForLastClient)
             {
-                Debug.Log($"Перед спавном: ClientsSpawnedToday = {GameManager.Instance.ClientsSpawnedToday}, TotalClients = {totalClientsToSpawn}, spawnPoint = {spawnPoint?.name}");
-                if (spawnPoint == null)
-                {
-                    Debug.LogError("SpawnPoint is null, skipping spawn.");
-                    yield break;
-                }
+                if (spawnPoint == null) yield break;
                 ClientDataSO clientSO = GetRandomClient();
-                Debug.Log($"GetRandomClient returned: {clientSO?.name ?? "null"}");
                 if (clientSO != null && clientSO.Prefab != null)
                 {
-                    GameObject clientGO = Instantiate(clientSO.Prefab, spawnPoint.position, Quaternion.identity);
-                    ClientData clientData = clientGO.GetComponent<ClientData>();
-                    CustomerMovement movement = clientGO.GetComponent<CustomerMovement>();
+                    var clientGO = Instantiate(clientSO.Prefab, spawnPoint.position, Quaternion.identity);
+                    var clientData = clientGO.GetComponent<ClientData>();
+                    var movement = clientGO.GetComponent<CustomerMovement>();
                     if (clientData != null && movement != null)
                     {
-                        string baseName = clientData.clientName;
-                        int nameIndex = 1;
-                        string uniqueName = baseName;
-                        while (GameManager.Instance.ClientPool.Any(c => c.clientName == uniqueName) ||
-                               ClientManager.Instance.AllClients.Any(c => c.clientName == uniqueName))
-                        {
-                            uniqueName = $"{baseName}_{nameIndex++}";
-                        }
-                        clientData.clientName = uniqueName;
-                        Debug.Log($"Клиент спавнен с именем {clientData.clientName} (ID: {nextClientId}) из префаба {baseName}, уникальность проверена");
+                        clientData.clientName = GetUniqueName(clientData.clientName);
                         clientData.SetClientId(nextClientId++);
-                        clientData.ClientDataSO = clientSO; // Установить SO
-                        List<Employee> availableEmployees = EmployeeManager.Instance.AvailableEmployees;
-                        Employee randomEmployee = availableEmployees != null && availableEmployees.Count > 0 ?
-                            availableEmployees[Random.Range(0, availableEmployees.Count)] : null;
-                        clientData.InitializeClientPreferences(); // Тип из SO
+                        clientData.ClientDataSO = clientSO;
+                        clientData.InitializeClientPreferences();
                         clientData.SetState(ClientData.ClientState.MovingToRegister);
                         GameManager.Instance.ClientPool.Add(clientData);
                         GameManager.Instance.ClientsSpawnedToday++;
-                        if (OnClientSpawned != null)
-                        {
-                            OnClientSpawned.Invoke(clientData);
-                        }
+                        OnClientSpawned?.Invoke(clientData);
                     }
                     else
                     {
-                        Debug.LogError($"ClientData or CustomerMovement missing on {clientGO.name}.");
                         Destroy(clientGO);
                     }
                 }
-                float delay = Random.Range(GameManager.Instance.MinSpawnDelay, GameManager.Instance.MaxSpawnDelay);
-                Debug.Log($"Next spawn delay: {delay} seconds");
-                yield return new WaitForSeconds(delay);
+                yield return new WaitForSeconds(Random.Range(GameManager.Instance.MinSpawnDelay, GameManager.Instance.MaxSpawnDelay));
             }
             else
             {
-                Debug.Log($"Spawn blocked: isDayPaused = {GameManager.Instance.IsDayPaused}, RemainingTime = {GameManager.Instance.MaxDayDuration - (Time.time - GameManager.Instance.DayStartTime)}");
                 yield return null;
             }
         }
         isSpawning = false;
-        Debug.Log($"Спавн остановлен: достигнут лимит {totalClientsToSpawn} клиентов.");
+    }
+
+    private string GetUniqueName(string baseName)
+    {
+        var usedNames = GameManager.Instance.ClientPool.Select(c => c.clientName).Concat(ClientManager.Instance.AllClients.Select(c => c.clientName));
+        string uniqueName = baseName;
+        int nameIndex = 1;
+        while (usedNames.Contains(uniqueName))
+        {
+            uniqueName = $"{baseName}_{nameIndex++}";
+        }
+        return uniqueName;
     }
 
     private ClientDataSO GetRandomClient()

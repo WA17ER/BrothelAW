@@ -5,14 +5,12 @@ public class SceneTransitionManager : MonoBehaviour
 {
     public void TransitionToScene(string sceneName)
     {
-        SceneManager.LoadScene(sceneName);
+        if (!string.IsNullOrEmpty(sceneName))
+            SceneManager.LoadScene(sceneName);
     }
 
     public void EndCurrentDay()
     {
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.EndDayPublic();
-        }
+        GameManager.Instance?.EndDayPublic();
     }
 }

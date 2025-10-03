@@ -32,13 +32,13 @@ public class TrainingManager : MonoBehaviour
         yield return new WaitForSeconds(10f);
         for (int i = 0; i < 3; i++)
         {
-            GameObject uiInstance = Instantiate(trainingUIPrefab, transform);
-            TrainingIndicator ind = uiInstance.GetComponent<TrainingIndicator>();
+            var session = i + 1;
+            var uiInstance = Instantiate(trainingUIPrefab, transform);
+            var ind = uiInstance.GetComponent<TrainingIndicator>();
             if (ind != null)
             {
-                int session = i + 1;
                 ind.OnComplete = () => {
-                    bool success = ind.CurrentFill >= 1f;
+                    var success = ind.CurrentFill >= 1f;
                     switch (session)
                     {
                         case 1: Success1 = success; break;

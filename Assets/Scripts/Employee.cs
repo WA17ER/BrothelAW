@@ -52,13 +52,19 @@ public class Employee : MonoBehaviour
     }
     public EmployeeState GetState()
     {
-        if (activeSick != null && healingTimeRemaining > 0)
-            return EmployeeState.Healing;
-        if (activeSick != null && activeSick.isUnavailable)
-            return EmployeeState.HeavySick;
         if (activeSick != null)
-            return EmployeeState.Sick;        
+        {
+            if (healingTimeRemaining > 0) return EmployeeState.Healing;
+            if (activeSick.isUnavailable) return EmployeeState.HeavySick;
+            return EmployeeState.Sick;
+        }
         return currentState;
+    }
+    void OnValidate()
+    {
+        if (data == null) return;
+        if (StaminaCurrent > StaminaMax) StaminaCurrent = StaminaMax;
+        if (healingTimeRemaining < 0) healingTimeRemaining = 0;
     }
     public void SetState(EmployeeState state)
     {

@@ -61,20 +61,20 @@ public class DistrictManager : MonoBehaviour
         float totalGain = 0f;
         foreach (var district in districts)
         {
+            var prefs = district.EmployeePreferences;
             float districtGain = 0f;
             foreach (var employee in EmployeeManager.Instance.MarketingEmployees)
             {
-                if (MatchesPreferences(employee, district) && activeEmployeeMap[district] != null)
+                if (activeEmployeeMap[district] != null && MatchesPreferences(employee, district))
                 {
                     float gain = CalculateEmployeeEffectiveness(employee, district);
                     districtGain += gain;
-                    Debug.Log($"Прирост популярности от {employee.Data.employeeName} в {district.DistrictName}: {gain}");
                 }
             }
-            district.PreliminaryPopularity = districtGain; // Устанавливаем прирост без коэффициентов
+            district.PreliminaryPopularity = districtGain;
             totalGain += districtGain;
         }
-        return totalGain; // Возвращаем общий прирост
+        return totalGain;
     }
 
     public void ApplyPreliminaryPopularity()

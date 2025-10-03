@@ -133,76 +133,89 @@ public class ClientInteractionController : MonoBehaviour
             return serviceMatch; // Special races auto-pass prefs
         }
     }
+    void OnEnable()
+    {
+        GameManager.Instance?.onStateChange.AddListener(InitializePanel);
+        InitializePanel();
+    }
+
+    void OnDisable()
+    {
+        GameManager.Instance?.onStateChange.RemoveListener(InitializePanel);
+    }
+
     private float CalculateReward(EmployeeDataSO employee)
     {
         if (isDestroyed || employee == null || currentClient == null) return 0f;
-        // Базовая стоимость услуги из EmployeeManager
-        float baseReward = EmployeeManager.Instance.ServicePrices
-            .Find(sp => sp.serviceName == currentClient.RequestedService)?.price ?? 0f;
-        // Получение бонусов из EmployeeBonusesSO через EmployeeManager
-        EmployeeBonusesSO bonuses = EmployeeManager.Instance.GetBonuses();
+        float baseReward = EmployeeManager.Instance?.ServicePrices?.FirstOrDefault(sp => sp.serviceName == currentClient.RequestedService)?.price ?? 0f;
+        var bonuses = EmployeeManager.Instance?.GetBonuses();
         if (bonuses == null) return baseReward;
-        // Бонус за уровень навыка
         float skillBonus = 0f;
-        if (currentClient.SpecificEmployee != null && currentClient.SpecificEmployee.Skills.ContainsKey(currentClient.RequestedService))
+        if (currentClient.SpecificEmployee?.Skills.ContainsKey(currentClient.RequestedService) == true)
         {
             skillBonus = currentClient.SpecificEmployee.Skills[currentClient.RequestedService].level * 0.1f;
         }
-        // Проверка на спецрасы (Допельгангер, Суккуб, Ангел)
-        bool isSpecialRace = employee.race == EmployeeDataSO.Race.Допельгангер || employee.race == EmployeeDataSO.Race.Суккуб || employee.race == EmployeeDataSO.Race.Ангел;
+        bool isSpecialRace = employee.race is EmployeeDataSO.Race.Допельгангер or EmployeeDataSO.Race.Суккуб or EmployeeDataSO.Race.Ангел;
         if (!isSpecialRace)
         {
-            // Бонус за размер груди
-            float breastBonus = bonuses.breastSizeBonuses.Find(b => b.breastSize == employee.breastSize).bonus;
-            // Бонус за тип тела
-            float bodyBonus = bonuses.bodyTypeBonuses.Find(b => b.bodyType == employee.bodyType).bonus;
-            // Бонус за расу
-            float raceBonus = bonuses.raceBonuses.Find(b => b.race == employee.race).bonus;
-            // Общая стоимость с бонусами
-            baseReward += breastBonus + bodyBonus + raceBonus + skillBonus;
+            baseReward += bonuses.breastSizeBonuses.FirstOrDefault(b => b.breastSize == employee.breastSize).bonus;
+            baseReward += bonuses.bodyTypeBonuses.FirstOrDefault(b => b.bodyType == employee.bodyType).bonus;
+            baseReward += bonuses.raceBonuses.FirstOrDefault(b => b.race == employee.race).bonus;
+            baseReward += skillBonus;
         }
         else
         {
-            // Только бонус за расу для спецрасов
-            baseReward += bonuses.raceBonuses.Find(b => b.race == employee.race).bonus + skillBonus;
+            baseReward += bonuses.raceBonuses.FirstOrDefault(b => b.race == employee.race).bonus;
+            baseReward += skillBonus;
         }
         return baseReward;
     }
-    public void InitializePanel() // Сделан публичным
+    public void InitializePanel()
     {
-        if (isDestroyed) return; // Проверка на уничтожение
-        if (currentClient != null && employeeIcon != null && expectedEmployeeText != null && expectedRaceText != null &&
+        if (currentClient == null) return;
+        if (employeeIcon == null) Debug.Log("employeeIcon null");
+        if (expectedEmployeeText == null) Debug.Log("expectedEmployeeText null");
+        if (expectedRaceText == null) Debug.Log("expectedRaceText null");
+        if (expectedBodyText == null) Debug.Log("expectedBodyText null");
+        if (expectedBreastText == null) Debug.Log("expectedBreastText null");
+        if (desiredServiceText == null) Debug.Log("desiredServiceText null");
+        if (goldText == null) Debug.Log("goldText null");
+        if (employeePortrait == null) Debug.Log("employeePortrait null");
+        if (employeeNameText == null) Debug.Log("employeeNameText null");
+        if (employeeRaceText == null) Debug.Log("employeeRaceText null");
+        if (employeeBodyText == null) Debug.Log("employeeBodyText null");
+        if (employeeBreastText == null) Debug.Log("employeeBreastText null");
+        if (employeeServiceText == null) Debug.Log("employeeServiceText null");
+        if (rewardText == null) Debug.Log("rewardText null");
+        if (isDestroyed) return;
+        if (employeeIcon != null && expectedEmployeeText != null && expectedRaceText != null &&
             expectedBodyText != null && expectedBreastText != null && desiredServiceText != null && goldText != null &&
             employeePortrait != null && employeeNameText != null && employeeRaceText != null &&
             employeeBodyText != null && employeeBreastText != null && employeeServiceText != null && rewardText != null)
         {
-            // Обновление текстовых полей клиента
             expectedEmployeeText.text = "Сотрудница: None";
             expectedRaceText.text = currentClient.preferredRace != EmployeeDataSO.Race.None ? "Раса: " + currentClient.preferredRace.ToString() : "Раса: None";
             expectedBodyText.text = currentClient.preferredBodyType != EmployeeDataSO.BodyType.None ? "Тело: " + currentClient.preferredBodyType.ToString() : "Тело: None";
             expectedBreastText.text = currentClient.preferredBreastSize != EmployeeDataSO.BreastSize.None ? "Размер груди: " + currentClient.preferredBreastSize.ToString() : "Размер груди: None";
             desiredServiceText.text = "Услуга: " + (currentClient.RequestedService != null ? currentClient.RequestedService : "Нет");
             goldText.text = "Золото: " + currentClient.clientGold;
-            // Обновление EmployeeIcon на основе wantsSpecificEmployee
             if (currentClient.wantsSpecificEmployee && currentClient.SelectedEmployee != null && currentClient.SelectedEmployee.Data != null)
             {
                 displayedEmployeeIcon = currentClient.SelectedEmployee.Data.portraitIcon;
             }
             else
             {
-                displayedEmployeeIcon = Resources.Load<Sprite>("NoData_Square"); // Дефолтная иконка
+                displayedEmployeeIcon = Resources.Load<Sprite>("NoData_Square");
             }
-            employeeIcon.sprite = displayedEmployeeIcon; // Установка иконки
-            // Заполнение EmployeePanel данными из SelectedEmployee, если он задан
+            employeeIcon.sprite = displayedEmployeeIcon;
             if (currentClient.SelectedEmployee != null && currentClient.SelectedEmployee.Data != null)
             {
-                EmployeeDataSO employeeData = currentClient.SelectedEmployee.Data;
+                var employeeData = currentClient.SelectedEmployee.Data;
                 employeePortrait.sprite = employeeData.portraitIcon;
                 employeeNameText.text = "Имя: " + employeeData.employeeName;
                 employeeRaceText.text = "Раса: " + employeeData.race.ToString();
                 employeeBodyText.text = "Тип тела: " + employeeData.bodyType.ToString();
                 employeeBreastText.text = "Размер груди: " + employeeData.breastSize.ToString();
-                // Проверка наличия RequestedService в Skills
                 if (currentClient.SelectedEmployee.Skills.ContainsKey(currentClient.RequestedService))
                 {
                     int skillLevel = currentClient.SelectedEmployee.Skills[currentClient.RequestedService].level;

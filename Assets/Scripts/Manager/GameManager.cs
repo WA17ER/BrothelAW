@@ -136,45 +136,26 @@ public class GameManager : MonoBehaviour
     {
         dailyVisitorList.Clear();
         totalClientList.Clear();
-        extraVisitorsList.Clear(); // Очистка перед заполнением
-
-        // Базовые: рандом с повторениями из baseVisitorsList (baseVisitors раз)
-        List<ClientDataSO> tempBase = new List<ClientDataSO>(baseVisitorsList); // Копия для рандома без удаления
-        for (int i = 0; i < baseVisitors; i++)
-        {
-            if (tempBase.Count > 0)
-            {
-                int index = Random.Range(0, tempBase.Count);
-                dailyVisitorList.Add(tempBase[index]);
-                Debug.Log($"Added base visitor: {tempBase[index]?.name ?? "null"} at index {i}");
-            }
-        }
-
-        // Extra: из GameStateManager.ExtraVisitors (с лимитом maxClientPerScene по типам)
+        extraVisitorsList.Clear();
+        // Base visitors with LINQ
+        dailyVisitorList.AddRange(Enumerable.Range(0, baseVisitors).Select(_ => baseVisitorsList[Random.Range(0, baseVisitorsList.Count)]));
+        // Extra visitors with LINQ grouping
         if (dayCount >= 1)
         {
-            var clientCountByType = new Dictionary<int, int>();
-            foreach (var clientSO in GameStateManager.Instance.ExtraVisitors)
+            var grouped = GameStateManager.Instance.ExtraVisitors
+                .GroupBy(so => (int)so.clientType)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            foreach (var kvp in grouped)
             {
-                int typeId = (int)clientSO.clientType;
-                int currentCount = clientCountByType.ContainsKey(typeId) ? clientCountByType[typeId] : 0;
-                if (currentCount < clientSO.maxClientPerScene)
-                {
-                    dailyVisitorList.Add(clientSO);
-                    extraVisitorsList.Add(clientSO);
-                    clientCountByType[typeId] = currentCount + 1;
-                    Debug.Log($"Added extra visitor: {clientSO.name} (type {typeId})");
-                }
-                else
-                {
-                    Debug.Log($"Превышен лимит maxClientPerScene ({clientSO.maxClientPerScene}) для типа {clientSO.clientType}, клиент не добавлен.");
-                }
+                int typeId = kvp.Key;
+                var clients = kvp.Value;
+                int max = clients.First().maxClientPerScene;
+                int count = Mathf.Min(clients.Count, max);
+                extraVisitorsList.AddRange(clients.Take(count));
+                dailyVisitorList.AddRange(extraVisitorsList);
             }
         }
-
-        // Total: base + extra
         totalClientList.AddRange(dailyVisitorList);
-        Debug.Log($"UpdateDailyVisitorList: dailyVisitorList count = {dailyVisitorList.Count}, contains nulls: {dailyVisitorList.Any(x => x == null)}, dayCount = {dayCount}");
     }
 
     [ContextMenu("Start Day")]
@@ -474,11 +455,9 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log($"День: {dayCount}, Золото: {GameStateManager.Instance.Gold}, Популярность: {GameStateManager.Instance.Popularity}, Сложность: {difficultyLevel}, " +
                   $"Активные клиенты: {clientPool.Count}, Активные сотрудницы: {activeEmployees.Count}, " +
-                  $"Больные сотрудницы: {EmployeeManager.Instance.SickEmployees.Count}, " +
-                  $"Сотрудницы на лечении: {EmployeeManager.Instance.HealingEmployees.Count}, " +
-                  $"Сотрудницы на услуге: {EmployeeManager.Instance.OnServiceEmployees.Count}, " +
-                  $"Доступные сотрудницы: {EmployeeManager.Instance.AvailableEmployees.Count}, " +
-                  $"Сотрудницы на рекламе: {EmployeeManager.Instance.MarketingEmployees.Count}");
+                  $"Больные: {EmployeeManager.Instance.SickEmployees.Count}, Лечение: {EmployeeManager.Instance.HealingEmployees.Count}, " +
+                  $"Услуги: {EmployeeManager.Instance.OnServiceEmployees.Count}, Доступные: {EmployeeManager.Instance.AvailableEmployees.Count}, " +
+                  $"Реклама: {EmployeeManager.Instance.MarketingEmployees.Count}");
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)

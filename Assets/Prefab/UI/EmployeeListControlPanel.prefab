@@ -491,7 +491,7 @@ GameObject:
   - component: {fileID: 2163310254059032604}
   - component: {fileID: 7592546477922188830}
   m_Layer: 5
-  m_Name: EmployeeListToSelectPanel
+  m_Name: EmployeeListControlPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

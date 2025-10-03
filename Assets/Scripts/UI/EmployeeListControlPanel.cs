@@ -26,21 +26,8 @@ public class EmployeeListControlPanel : MonoBehaviour
     private List<EmployeeDataSO> GetAllAvailableEmployees()
     {
         if (isDestroyed) return new List<EmployeeDataSO>();
-        if (EmployeeManager.Instance != null)
-        {
-            List<Employee> allEmployees = EmployeeManager.Instance.GetAllEmployees();
-            List<EmployeeDataSO> filteredEmployees = new List<EmployeeDataSO>();
-            foreach (var employee in allEmployees)
-            {
-                if (employee != null && employee.Data != null)
-                {
-                    filteredEmployees.Add(employee.Data);
-                }
-            }
-            return filteredEmployees;
-        }
-        Debug.LogWarning("EmployeeManager.Instance не найден, возвращаем пустой список!");
-        return new List<EmployeeDataSO>();
+        var allEmployees = EmployeeManager.Instance?.GetAllEmployees();
+        return allEmployees?.Where(e => e != null && e.Data != null).Select(e => e.Data).ToList() ?? new List<EmployeeDataSO>();
     }
     public void Initialize(ClientData client, ClientInteractionController controller)
     {
@@ -129,44 +116,36 @@ public class EmployeeListControlPanel : MonoBehaviour
     void PopulateEmployeeGrid()
     {
         if (isDestroyed) return;
-        if (employeePanelPrefab != null && employeeGrid != null)
-        {
-            foreach (Transform child in employeeGrid)
-            {
-                Destroy(child.gameObject);
-            }
-            List<EmployeeDataSO> availableEmployees = GetAllAvailableEmployees();
-            foreach (var employee in availableEmployees)
-            {
-                if (employee != null)
-                {
-                    GameObject panelInstance = Instantiate(employeePanelPrefab, employeeGrid);
-                    if (panelInstance != null)
-                    {
-                        Button panelButton = panelInstance.GetComponent<Button>();
-                        Image employeeIcon = panelInstance.transform.Find("EmployeeIcon")?.GetComponent<Image>();
-                        TMP_Text employeeNameText = panelInstance.transform.Find("EmployeeNameText")?.GetComponent<TMP_Text>();
-                        if (panelButton != null && employeeIcon != null && employeeNameText != null)
-                        {
-                            employeeIcon.sprite = employee.listIcon;
-                            employeeNameText.text = employee.employeeName;
-                            panelButton.onClick.AddListener(() => OnEmployeePanelClick(employee));
-                            Employee relatedEmployee = EmployeeManager.Instance.GetAllEmployees().FirstOrDefault(e => e.Data == employee);
-                            if (relatedEmployee != null && (relatedEmployee.GetState() == Employee.EmployeeState.OnService || relatedEmployee.GetState() == Employee.EmployeeState.HeavySick || relatedEmployee.StaminaCurrent <= 0))
-                            {
-                                employeeIcon.color = new Color(0.5f, 0.5f, 0.5f);
-                                employeeNameText.color = new Color(0.5f, 0.5f, 0.5f);
-                                panelButton.interactable = false;
-                            }
-                            Debug.Log($"Добавлена панель для сотрудницы {employee.employeeName} с иконкой, состояние: {relatedEmployee?.GetState().ToString() ?? "Не определено"}");
-                        }
-                    }
-                }
-            }
-        }
-        else
+        if (employeePanelPrefab == null || employeeGrid == null)
         {
             Debug.LogWarning("Префаб employeePanelPrefab или employeeGrid не назначен!");
+            return;
+        }
+        foreach (Transform child in employeeGrid)
+        {
+            Destroy(child.gameObject);
+        }
+        var availableEmployees = GetAllAvailableEmployees();
+        foreach (var empData in availableEmployees)
+        {
+            if (empData == null) continue;
+            var panelInstance = Instantiate(employeePanelPrefab, employeeGrid);
+            if (panelInstance == null) continue;
+            var panelButton = panelInstance.GetComponent<Button>();
+            var employeeIcon = panelInstance.transform.Find("EmployeeIcon")?.GetComponent<Image>();
+            var employeeNameText = panelInstance.transform.Find("EmployeeNameText")?.GetComponent<TMP_Text>();
+            if (panelButton == null || employeeIcon == null || employeeNameText == null) continue;
+            employeeIcon.sprite = empData.listIcon;
+            employeeNameText.text = empData.employeeName;
+            panelButton.onClick.AddListener(() => OnEmployeePanelClick(empData));
+            var relatedEmployee = EmployeeManager.Instance?.GetAllEmployees().FirstOrDefault(e => e.Data == empData);
+            if (relatedEmployee != null && (relatedEmployee.GetState() == Employee.EmployeeState.OnService || relatedEmployee.GetState() == Employee.EmployeeState.HeavySick || relatedEmployee.StaminaCurrent <= 0))
+            {
+                employeeIcon.color = new Color(0.5f, 0.5f, 0.5f);
+                employeeNameText.color = new Color(0.5f, 0.5f, 0.5f);
+                panelButton.interactable = false;
+            }
+            Debug.Log($"Добавлена панель для сотрудницы {empData.employeeName} с иконкой, состояние: {relatedEmployee?.GetState().ToString() ?? "Не определено"}");
         }
     }
     void OnEmployeePanelClick(EmployeeDataSO employee)

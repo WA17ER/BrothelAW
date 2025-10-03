@@ -23,7 +23,7 @@ public class EmployeeManager : MonoBehaviour
     private List<Employee> sickEmployees = new List<Employee>();
     private List<Employee> healingEmployees = new List<Employee>();
     private List<Employee> onServiceEmployees = new List<Employee>();
-   
+    private List<Employee> _allEmployeesCache;
     [SerializeField] private List<Employee> marketingEmployees = new List<Employee>();
     public List<Employee> AvailableEmployees => availableEmployees;
     public List<Employee> SickEmployees => sickEmployees;
@@ -96,7 +96,7 @@ public class EmployeeManager : MonoBehaviour
         availableEmployees.Clear();
         sickEmployees.Clear();
         healingEmployees.Clear();
-        onServiceEmployees.Clear();       
+        onServiceEmployees.Clear();
         marketingEmployees.Clear();
         foreach (var employee in employees)
         {
@@ -104,17 +104,13 @@ public class EmployeeManager : MonoBehaviour
         }
         if (availableEmployees.Count > 0)
         {
-            string names = "Список сотрудниц в EmployeeManager: ";
-            foreach (var employee in availableEmployees)
-            {
-                names += employee.Data.employeeName + ", ";
-            }
-            Debug.Log(names.TrimEnd(',', ' '));
+            Debug.Log($"Список сотрудниц в EmployeeManager: {string.Join(", ", availableEmployees.Select(e => e.Data.employeeName))}");
         }
         else
         {
             Debug.Log("Список сотрудниц в EmployeeManager пуст.");
         }
+        _allEmployeesCache = null;
     }
     public void AddEmployees(List<Employee> employees)
     {
@@ -130,12 +126,11 @@ public class EmployeeManager : MonoBehaviour
         healingEmployees.Remove(employee);
         onServiceEmployees.Remove(employee);
         marketingEmployees.Remove(employee);
-        Debug.Log($"MoveEmployeeToList called for {employee.Data.employeeName}, current state: {employee.GetState()}");
-        switch (employee.GetState())
+        var state = employee.GetState();
+        switch (state)
         {
             case Employee.EmployeeState.Available:
                 availableEmployees.Add(employee);
-                Debug.Log($"Перемещение {employee.Data.employeeName} в availableEmployees: {availableEmployees.Contains(employee)}");
                 break;
             case Employee.EmployeeState.Sick:
                 sickEmployees.Add(employee);
@@ -145,7 +140,6 @@ public class EmployeeManager : MonoBehaviour
                 break;
             case Employee.EmployeeState.OnService:
                 onServiceEmployees.Add(employee);
-                Debug.Log($"Перемещение {employee.Data.employeeName} в onServiceEmployees");
                 break;
             case Employee.EmployeeState.HeavySick:
                 sickEmployees.Add(employee);
@@ -153,10 +147,11 @@ public class EmployeeManager : MonoBehaviour
             case Employee.EmployeeState.Marketing:
                 marketingEmployees.Add(employee);
                 availableEmployees.Remove(employee);
-                Debug.Log($"Перемещение {employee.Data.employeeName} в marketingEmployees: {marketingEmployees.Contains(employee)}");
+                break;
+            default:
                 break;
         }
-        Debug.Log($"Сотрудница {employee.Data.employeeName} перемещена в {employee.GetState()}.");
+        _allEmployeesCache = null;
     }
     public void MoveEmployeeToList(Employee employee, Employee.EmployeeState state)
     {
@@ -336,13 +331,11 @@ public class EmployeeManager : MonoBehaviour
     }
     public List<Employee> GetAllEmployees()
     {
-        List<Employee> allEmployees = new List<Employee>();
-        allEmployees.AddRange(availableEmployees);
-        allEmployees.AddRange(sickEmployees);
-        allEmployees.AddRange(healingEmployees);
-        allEmployees.AddRange(onServiceEmployees);
-        allEmployees.AddRange(marketingEmployees);
-        return allEmployees;
+        return _allEmployeesCache ??= availableEmployees.Concat(sickEmployees)
+            .Concat(healingEmployees)
+            .Concat(onServiceEmployees)
+            .Concat(marketingEmployees)
+            .ToList();
     }
     public EmployeeBonusesSO GetBonuses()
     {

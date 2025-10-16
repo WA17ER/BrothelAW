@@ -139,7 +139,7 @@ public class EmployeeListControlPanel : MonoBehaviour
             employeeNameText.text = empData.employeeName;
             panelButton.onClick.AddListener(() => OnEmployeePanelClick(empData));
             var relatedEmployee = EmployeeManager.Instance?.GetAllEmployees().FirstOrDefault(e => e.Data == empData);
-            if (relatedEmployee != null && (relatedEmployee.GetState() == Employee.EmployeeState.OnService || relatedEmployee.GetState() == Employee.EmployeeState.HeavySick || relatedEmployee.StaminaCurrent <= 0))
+            if (relatedEmployee != null && (relatedEmployee.GetState() == Employee.EmployeeState.OnService || relatedEmployee.GetState() == Employee.EmployeeState.HeavySick || relatedEmployee.GetState() == Employee.EmployeeState.Marketing||  relatedEmployee.StaminaCurrent <= 0))
             {
                 employeeIcon.color = new Color(0.5f, 0.5f, 0.5f);
                 employeeNameText.color = new Color(0.5f, 0.5f, 0.5f);

@@ -1,9 +1,10 @@
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using TMPro;
 using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class HireEmployeeUI : MonoBehaviour
 {
@@ -24,26 +25,32 @@ public class HireEmployeeUI : MonoBehaviour
     private void Start()
     {
         if (cancelButton != null) cancelButton.onClick.AddListener(ClosePanel);
-        if (hireButton != null) hireButton.onClick.RemoveAllListeners();
-        employeeInfoPanel.SetActive(false);
+        if (hireButton != null) hireButton.onClick.RemoveAllListeners();        
         PopulateGrid();
     }
 
     private void PopulateGrid()
     {
-        EmployeeDataSO[] temps = Resources.LoadAll<EmployeeDataSO>("TemporaryEmployee");
-        foreach (var emp in temps)
+        var temps = Resources.LoadAll<EmployeeDataSO>("TemporaryEmployee");
+        foreach (var emp in temps.Where(emp => emp != null))
         {
-            if (emp == null) continue;
-            GameObject panel = Instantiate(employeePanelPrefab, grid);
-            Image icon = panel.transform.Find("EmployeeIcon").GetComponent<Image>();
-            TMP_Text nameTxt = panel.transform.Find("EmployeeNameText").GetComponent<TMP_Text>();
+            var panel = Instantiate(employeePanelPrefab, grid);
+            var icon = panel.transform.Find("EmployeeIcon")?.GetComponent<Image>();
+            var nameTxt = panel.transform.Find("EmployeeNameText")?.GetComponent<TMP_Text>();
             if (icon != null) icon.sprite = emp.listIcon;
             if (nameTxt != null) nameTxt.text = emp.employeeName;
-            Button btn = panel.GetComponent<Button>();
+            var btn = panel.GetComponent<Button>();
             if (btn != null) btn.onClick.AddListener(() => SelectEmployee(emp));
             panels[emp] = panel;
         }
+    }
+    void OnDestroy()
+    {
+        foreach (var panel in panels.Values)
+        {
+            if (panel != null) Destroy(panel);
+        }
+        panels.Clear();
     }
 
     private void SelectEmployee(EmployeeDataSO emp)

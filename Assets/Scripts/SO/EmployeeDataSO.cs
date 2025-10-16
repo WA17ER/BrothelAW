@@ -28,5 +28,6 @@ public class EmployeeDataSO : ScriptableObject
         {
             Debug.LogWarning($"EmployeeDataSO {employeeName}: BaseSkills пуст или не задан.");
         }
+        if (progressionSpeed < 0) progressionSpeed = 0;
     }
 }

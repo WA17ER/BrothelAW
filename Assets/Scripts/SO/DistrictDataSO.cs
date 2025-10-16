@@ -60,27 +60,30 @@ public class EmployeePreferenceData
 
     public void InitializePreferences()
     {
-        if (bodyType.Count == 0)
+        var bodyDefaults = new[]
         {
-            bodyType.Add(new BodyTypePreference { Type = EmployeeDataSO.BodyType.Обычное, Value = 10 });
-            bodyType.Add(new BodyTypePreference { Type = EmployeeDataSO.BodyType.Доска, Value = 15 });
-            bodyType.Add(new BodyTypePreference { Type = EmployeeDataSO.BodyType.Милое, Value = 20 });
-            bodyType.Add(new BodyTypePreference { Type = EmployeeDataSO.BodyType.Высокое, Value = 25 });
-            bodyType.Add(new BodyTypePreference { Type = EmployeeDataSO.BodyType.Спортивное, Value = 30 });
-            bodyType.Add(new BodyTypePreference { Type = EmployeeDataSO.BodyType.Желанное, Value = 35 });
-            bodyType.Add(new BodyTypePreference { Type = EmployeeDataSO.BodyType.Великан, Value = 40 });
-        }
-        if (racePreference.Count == 0)
+            new BodyTypePreference { Type = EmployeeDataSO.BodyType.Обычное, Value = 10 },
+            new BodyTypePreference { Type = EmployeeDataSO.BodyType.Доска, Value = 15 },
+            new BodyTypePreference { Type = EmployeeDataSO.BodyType.Милое, Value = 20 },
+            new BodyTypePreference { Type = EmployeeDataSO.BodyType.Высокое, Value = 25 },
+            new BodyTypePreference { Type = EmployeeDataSO.BodyType.Спортивное, Value = 30 },
+            new BodyTypePreference { Type = EmployeeDataSO.BodyType.Желанное, Value = 35 },
+            new BodyTypePreference { Type = EmployeeDataSO.BodyType.Великан, Value = 40 }
+        };
+        if (bodyType.Count == 0) bodyType.AddRange(bodyDefaults);
+
+        var raceDefaults = new[]
         {
-            racePreference.Add(new RacePreference { Race = EmployeeDataSO.Race.Человек, Value = 10 });
-            racePreference.Add(new RacePreference { Race = EmployeeDataSO.Race.Эльф, Value = 15 });
-            racePreference.Add(new RacePreference { Race = EmployeeDataSO.Race.Тёмный_Эльф, Value = 20 });
-            racePreference.Add(new RacePreference { Race = EmployeeDataSO.Race.Некоматана, Value = 25 });
-            racePreference.Add(new RacePreference { Race = EmployeeDataSO.Race.Они, Value = 30 });
-            racePreference.Add(new RacePreference { Race = EmployeeDataSO.Race.Гарпия, Value = 35 });
-            racePreference.Add(new RacePreference { Race = EmployeeDataSO.Race.Китсуне, Value = 40 });
-            racePreference.Add(new RacePreference { Race = EmployeeDataSO.Race.Дриада, Value = 45 });
-        }
+            new RacePreference { Race = EmployeeDataSO.Race.Человек, Value = 10 },
+            new RacePreference { Race = EmployeeDataSO.Race.Эльф, Value = 15 },
+            new RacePreference { Race = EmployeeDataSO.Race.Тёмный_Эльф, Value = 20 },
+            new RacePreference { Race = EmployeeDataSO.Race.Некоматана, Value = 25 },
+            new RacePreference { Race = EmployeeDataSO.Race.Они, Value = 30 },
+            new RacePreference { Race = EmployeeDataSO.Race.Гарпия, Value = 35 },
+            new RacePreference { Race = EmployeeDataSO.Race.Китсуне, Value = 40 },
+            new RacePreference { Race = EmployeeDataSO.Race.Дриада, Value = 45 }
+        };
+        if (racePreference.Count == 0) racePreference.AddRange(raceDefaults);
     }
 }
 
@@ -88,30 +91,25 @@ public class EmployeePreferenceData
 public class ChestSizePreference
 {
     [SerializeField] private EmployeeDataSO.BreastSize size;
-    [SerializeField] private int value;
-
+    [SerializeField] private int bonusValue;
     public EmployeeDataSO.BreastSize Size { get => size; set => size = value; }
-    public int Value { get => value; set => this.value = value; }
+    public int Value { get => bonusValue; set => bonusValue = value; }
 }
-
 [System.Serializable]
 public class BodyTypePreference
 {
     [SerializeField] private EmployeeDataSO.BodyType type;
-    [SerializeField] private int value;
-
+    [SerializeField] private int bonusValue;
     public EmployeeDataSO.BodyType Type { get => type; set => type = value; }
-    public int Value { get => value; set => this.value = value; }
+    public int Value { get => bonusValue; set => bonusValue = value; }
 }
-
 [System.Serializable]
 public class RacePreference
 {
     [SerializeField] private EmployeeDataSO.Race race;
-    [SerializeField] private int value;
-
+    [SerializeField] private int bonusValue;
     public EmployeeDataSO.Race Race { get => race; set => race = value; }
-    public int Value { get => value; set => this.value = value; }
+    public int Value { get => bonusValue; set => bonusValue = value; }
 }
 
 [System.Serializable]

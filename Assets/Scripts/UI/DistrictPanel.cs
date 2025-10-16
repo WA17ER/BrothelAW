@@ -8,30 +8,15 @@ public class DistrictPanel : MonoBehaviour
     [SerializeField] private TMP_Text districtNameText;
     [SerializeField] private EmployeeMarketingPanel employeeMarketingPanel;
 
-    private void Start()
+    void Start()
     {
-        if (employeeImage == null || districtNameText == null || employeeMarketingPanel == null)
+        if (employeeImage == null || districtNameText == null || employeeMarketingPanel == null) return;
+        var districtData = GetComponent<DistrictData>();
+        if (districtData?.GetDistrictData() is DistrictDataSO data)
         {
-            Debug.LogError("Не все поля инициализированы в DistrictPanel.");
-            return;
-        }
-        DistrictData districtData = GetComponent<DistrictData>();
-        if (districtData != null)
-        {
-            districtNameText.text = districtData.GetDistrictData().DistrictName;
-            var button = employeeImage.GetComponent<UnityEngine.UI.Button>();
-            if (button != null)
-            {
-                button.onClick.AddListener(OnEmployeeImageClicked);
-            }
-            else
-            {
-                Debug.LogError("Компонент Button не найден на employeeImage в DistrictPanel.");
-            }
-        }
-        else
-        {
-            Debug.LogError("DistrictData не найден на DistrictPanel.");
+            districtNameText.text = data.DistrictName ?? "Unnamed";
+            var button = employeeImage.GetComponent<Button>();
+            if (button != null) button.onClick.AddListener(() => employeeMarketingPanel.OpenPanel(districtData));
         }
     }
 

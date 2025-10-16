@@ -15,51 +15,51 @@ MonoBehaviour:
   employeePreferences:
     chestSize:
     - size: 0
-      value: 1
+      bonusValue: 0
     - size: 1
-      value: 2
+      bonusValue: 0
     - size: 2
-      value: 3
+      bonusValue: 0
     - size: 3
-      value: 4
+      bonusValue: 0
     - size: 4
-      value: 4
+      bonusValue: 0
     - size: 5
-      value: 4
+      bonusValue: 0
     bodyType:
     - type: 0
-      value: 1
+      bonusValue: 0
     - type: 1
-      value: 5
+      bonusValue: 0
     - type: 2
-      value: 2
+      bonusValue: 0
     - type: 3
-      value: 4
+      bonusValue: 0
     - type: 5
-      value: 10
+      bonusValue: 0
     - type: 4
-      value: 1
+      bonusValue: 0
     - type: 6
-      value: 2
+      bonusValue: 0
     racePreference:
     - race: 0
-      value: 0
+      bonusValue: 0
     - race: 1
-      value: 2
+      bonusValue: 0
     - race: 2
-      value: 2
+      bonusValue: 0
     - race: 3
-      value: -5
+      bonusValue: 0
     - race: 4
-      value: -10
+      bonusValue: 0
     - race: 5
-      value: 0
+      bonusValue: 0
     - race: 6
-      value: 10
+      bonusValue: 0
     - race: 7
-      value: 5
+      bonusValue: 0
   districtName: Main
-  popularityToUnlock: 1000
+  popularityToUnlock: 5000
   clientTypes:
   - clientType: {fileID: 11400000, guid: 7da15995772720b41acfcc1dbaaa93da, type: 2}
     multiplier: 50
@@ -67,8 +67,8 @@ MonoBehaviour:
     multiplier: 150
   - clientType: {fileID: 11400000, guid: b042a1019b0fac84693c73b6da711dda, type: 2}
     multiplier: 300
-  availableRaces: 0600000001000000000000000000000000000000
-  districtPopularity: 500
+  availableRaces: 
+  districtPopularity: 0
   raceUnlocks:
   - raceVariety: {fileID: 11400000, guid: 61ee40d2e763083439ae74f0a8685ee1, type: 2}
     popularityThreshold: 100

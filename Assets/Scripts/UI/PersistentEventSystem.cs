@@ -4,7 +4,6 @@ using UnityEngine.EventSystems;
 public class PersistentEventSystem : MonoBehaviour
 {
     private static PersistentEventSystem instance;
-
     private void Awake()
     {
         if (instance == null)
@@ -15,7 +14,7 @@ public class PersistentEventSystem : MonoBehaviour
             {
                 Destroy(EventSystem.current.gameObject);
             }
-            Debug.Log("PersistentEventSystem: Instance created, destroying " + (EventSystem.current?.gameObject.name ?? "null"));
+            Debug.Log("PersistentEventSystem: Instance created, destroying " + (EventSystem.current?.gameObject?.name ?? "null"));
         }
         else if (instance != this)
         {

@@ -15,9 +15,11 @@ public class EmployeeHealPanel : MonoBehaviour
     {
         employee = emp;
         healingManager = manager;
-        employeeNameText.text = employee.Data.employeeName;
-        addButton.onClick.AddListener(OnAddButtonClick);
-        cancelButton.onClick.AddListener(OnCancelButtonClick);
+        employeeNameText.text = employee?.Data.employeeName ?? "";
+        addButton?.onClick.RemoveAllListeners();
+        cancelButton?.onClick.RemoveAllListeners();
+        addButton?.onClick.AddListener(OnAddButtonClick);
+        cancelButton?.onClick.AddListener(OnCancelButtonClick);
         cancelButton.interactable = false;
     }
 

@@ -3,99 +3,85 @@ using UnityEngine.AI;
 
 public class CustomerMovement : MonoBehaviour
 {
-    public GameObject Visual;
+    [SerializeField] private GameObject Visual;
     private NavMeshAgent agent;
     private Transform exitPoint;
     private ClientData clientData;
 
-    private void Awake()
+    void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         clientData = GetComponent<ClientData>();
-        if (Visual == null)
-        {
-            Debug.LogWarning($"Visual not assigned for {gameObject.name}.");
-        }
+        if (Visual == null) Debug.LogWarning($"Visual not assigned for {name}.");
         if (agent != null)
         {
-            agent.radius = 0.3f; // Уменьшен радиус агента для лучшей навигации
-            agent.stoppingDistance = 0.3f; // Увеличен stoppingDistance для учета отклонений
+            agent.radius = 0.3f;
+            agent.stoppingDistance = 0.3f;
             agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
         }
         gameObject.layer = LayerMask.NameToLayer("Client");
     }
 
-    private void Start()
+    void Start()
     {
-        exitPoint = GameManager.Instance.ExitPoint;
+        exitPoint = GameManager.Instance?.ExitPoint;
     }
 
-    private void Update()
+    void Update()
     {
-        switch (clientData.State)
+        if (clientData == null) return;
+        var state = clientData.State;
+        switch (state)
         {
             case ClientData.ClientState.MovingToRegister:
-                if (GameManager.Instance.RegisterPoint != null)
+                var registerPoint = GameManager.Instance?.RegisterPoint;
+                if (registerPoint != null)
                 {
-                    agent.SetDestination(GameManager.Instance.RegisterPoint.position);
-                    if (IsPositionReached(GameManager.Instance.RegisterPoint.position))
+                    agent?.SetDestination(registerPoint.position);
+                    if (IsPositionReached(registerPoint.position))
                     {
                         clientData.SetState(ClientData.ClientState.Waiting);
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"RegisterPoint not assigned in GameManager for {gameObject.name}.");
                     clientData.SetState(ClientData.ClientState.Waiting);
                 }
-                break;
-            case ClientData.ClientState.Waiting:
                 break;
             case ClientData.ClientState.OnOccupyChair:
                 if (clientData.targetChair != null)
                 {
-                    agent.SetDestination(clientData.targetChair.position);
+                    agent?.SetDestination(clientData.targetChair.position);
                     if (IsPositionReached(clientData.targetChair.position))
                     {
-                        Debug.Log($"Клиент {clientData.clientName} достиг targetChair {clientData.targetChair.parent.name} на позиции {transform.position}");
                         clientData.SetState(ClientData.ClientState.OnChair);
-                    }
-                    else if (Vector3.Distance(new Vector3(agent.destination.x, 0, agent.destination.z),
-                                              new Vector3(clientData.targetChair.position.x, 0, clientData.targetChair.position.z)) > 0.5f)
-                    {
-                        Debug.LogWarning($"Значительное расхождение в X/Z для клиента {clientData.clientName}, destination: {agent.destination}, target: {clientData.targetChair.position}");
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"Target chair not assigned for {gameObject.name}.");
                     clientData.SetState(ClientData.ClientState.Waiting);
                 }
                 break;
-            case ClientData.ClientState.OnChair:
-                break;
             case ClientData.ClientState.MovingToService:
-                if (GameManager.Instance.ServicePoint != null)
+                var servicePoint = GameManager.Instance?.ServicePoint;
+                if (servicePoint != null)
                 {
-                    agent.SetDestination(GameManager.Instance.ServicePoint.position);
-                    if (IsPositionReached(GameManager.Instance.ServicePoint.position))
+                    agent?.SetDestination(servicePoint.position);
+                    if (IsPositionReached(servicePoint.position))
                     {
-                        if (Visual != null) Visual.SetActive(false);
-                        if (agent != null) agent.enabled = false;
+                        Visual?.SetActive(false);
+                        agent.enabled = false;
                         clientData.SetState(ClientData.ClientState.Servicing);
-                        GameManager.Instance.EnterService(this);
+                        GameManager.Instance?.EnterService(this);
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"ServicePoint not assigned in GameManager for {gameObject.name}.");
                     clientData.SetState(ClientData.ClientState.Servicing);
                 }
                 break;
-            case ClientData.ClientState.Servicing:
-                break;
             case ClientData.ClientState.Exiting:
-                agent.SetDestination(exitPoint.position);
+                agent?.SetDestination(exitPoint.position);
                 if (IsPositionReached(exitPoint.position))
                 {
                     clientData.ClearChair();
@@ -107,33 +93,27 @@ public class CustomerMovement : MonoBehaviour
 
     private bool IsPositionReached(Vector3 targetPosition)
     {
-        Vector3 agentPosition = transform.position;
+        Vector3 agentPos = transform.position;
         Vector3 target2D = new Vector3(targetPosition.x, 0, targetPosition.z);
-        Vector3 agent2D = new Vector3(agentPosition.x, 0, agentPosition.z);
-        return Vector3.Distance(agent2D, target2D) < agent.stoppingDistance;
+        Vector3 agent2D = new Vector3(agentPos.x, 0, agentPos.z);
+        return Vector3.Distance(agent2D, target2D) < (agent?.stoppingDistance ?? 0.3f);
     }
 
     public void ExitService()
     {
-        if (Visual != null) Visual.SetActive(true);
+        Visual?.SetActive(true);
         if (agent != null) agent.enabled = true;
-        clientData.ClearChair();
-        clientData.SetState(ClientData.ClientState.Exiting);
+        clientData?.ClearChair();
+        clientData?.SetState(ClientData.ClientState.Exiting);
     }
 
     public void Pause()
     {
-        if (agent != null)
-        {
-            agent.isStopped = true;
-        }
+        if (agent != null) agent.isStopped = true;
     }
 
     public void Resume()
     {
-        if (agent != null)
-        {
-            agent.isStopped = false;
-        }
+        if (agent != null) agent.isStopped = false;
     }
 }

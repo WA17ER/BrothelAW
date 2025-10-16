@@ -36,22 +36,21 @@ public class EmployeeTrainPanelUI : MonoBehaviour
         skillTexts[4] = skill5Text;
         skillTexts[5] = skill6Text;
         skillTexts[6] = skill7Text;
-        skillTexts[7] = skill8Text;
-        employeeInfoPanel.SetActive(false);
+        skillTexts[7] = skill8Text;        
         PopulateGrid();
     }
 
-    private void PopulateGrid()
+    void PopulateGrid()
     {
-        var employees = EmployeeManager.Instance.GetAllEmployees().Where(e => e.GetState() == Employee.EmployeeState.Available).ToList();
+        var employees = EmployeeManager.Instance?.GetAllEmployees()?.Where(e => e.GetState() == Employee.EmployeeState.Available) ?? Enumerable.Empty<Employee>();
         foreach (var emp in employees)
         {
-            GameObject panel = Instantiate(employeePanelPrefab, grid);
-            Image icon = panel.transform.Find("EmployeeIcon")?.GetComponent<Image>();
-            TMP_Text nameTxt = panel.transform.Find("EmployeeNameText")?.GetComponent<TMP_Text>();
+            var panel = Instantiate(employeePanelPrefab, grid);
+            var icon = panel.transform.Find("EmployeeIcon")?.GetComponent<Image>();
+            var nameTxt = panel.transform.Find("EmployeeNameText")?.GetComponent<TMP_Text>();
             if (icon != null) icon.sprite = emp.Data.listIcon;
             if (nameTxt != null) nameTxt.text = emp.Data.employeeName;
-            Button btn = panel.GetComponent<Button>();
+            var btn = panel.GetComponent<Button>();
             if (btn != null) btn.onClick.AddListener(() => ShowInfo(emp));
             panels[emp] = panel;
         }

@@ -1,5 +1,6 @@
-using UnityEngine;
+using System.Linq;
 using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 public class DistrictData : MonoBehaviour
@@ -13,17 +14,15 @@ public class DistrictData : MonoBehaviour
     [SerializeField] private Employee assignedEmployee; // Остаётся private
     private bool isConfirmed;
     [SerializeField] private float popularityGain; // Новое поле для популярности
+    private float _popularityGainCache;
+    public float GetPopularityGain() => _popularityGainCache;
 
-    private void Start()
+    void Start()
     {
-        if (districtData == null || employeeImage == null || districtNameText == null || employeeMarketingPanel == null)
-        {
-            Debug.LogError("Не все поля инициализированы в DistrictData для района " + (districtData != null && !string.IsNullOrEmpty(districtData.DistrictName) ? districtData.DistrictName : "null"));
-            return;
-        }
-        districtNameText.text = !string.IsNullOrEmpty(districtData.DistrictName) ? districtData.DistrictName : "Unnamed District";
+        if (districtData == null || employeeImage == null || districtNameText == null || employeeMarketingPanel == null) return;
+        districtNameText.text = districtData.DistrictName;
         UpdateEmployeeImage();
-        CalculatePopularityGain(); // Инициализация популярности при старте
+        CalculatePopularityGain();
     }
 
     public void OnEmployeeImageClicked()
@@ -198,50 +197,16 @@ public class DistrictData : MonoBehaviour
 
     private void CalculatePopularityGain()
     {
-        if (activeEmployee != null && districtData != null && districtData.EmployeePreferences != null)
+        if (activeEmployee == null || districtData?.EmployeePreferences == null)
         {
-            popularityGain = 0;
-            EmployeeDataSO employeeData = activeEmployee.Data;
-
-            // Расчет бонусов за размер груди
-            foreach (var pref in districtData.EmployeePreferences.ChestSize)
-            {
-                if (pref.Size == (EmployeeDataSO.BreastSize)System.Enum.Parse(typeof(EmployeeDataSO.BreastSize), employeeData.breastSize.ToString()))
-                {
-                    popularityGain += pref.Value;
-                }
-            }
-
-            // Расчет бонусов за тип тела
-            foreach (var pref in districtData.EmployeePreferences.BodyType)
-            {
-                if (pref.Type == employeeData.bodyType)
-                {
-                    popularityGain += pref.Value;
-                }
-            }
-
-            // Расчет бонусов за расу
-            foreach (var pref in districtData.EmployeePreferences.RacePreference)
-            {
-                if (pref.Race == employeeData.race)
-                {
-                    popularityGain += pref.Value;
-                }
-            }
-
-            Debug.Log($"Популярность для района {districtData.DistrictName} рассчитана: {popularityGain}");
-            districtData.PreliminaryPopularity = popularityGain; // Передача в DistrictDataSO
+            _popularityGainCache = 0f;
+            return;
         }
-        else
-        {
-            popularityGain = 0;
-            districtData.PreliminaryPopularity = 0;
-        }
-    }
-
-    public float GetPopularityGain()
-    {
-        return popularityGain;
-    }
+        var prefs = districtData.EmployeePreferences;
+        var employeeData = activeEmployee.Data;
+        _popularityGainCache = prefs.ChestSize.FirstOrDefault(p => p.Size == employeeData.breastSize).Value +
+                               prefs.BodyType.FirstOrDefault(p => p.Type == employeeData.bodyType).Value +
+                               prefs.RacePreference.FirstOrDefault(p => p.Race == employeeData.race).Value;
+        districtData.PreliminaryPopularity = _popularityGainCache;
+    }    
 }

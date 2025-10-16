@@ -20,6 +20,7 @@ public class ClientDataSO : ScriptableObject
     public int maxClientPerScene; // Максимальное количество клиентов данного типа за сцену
     public GameObject Prefab;
     public List<RaceVarietySO> varietyPreferences = new List<RaceVarietySO>();
+    public List<string> possibleServices = new List<string>();
     public float RaceChance;
     public float BodyTypeChance;
     public float BreastSizeChance;

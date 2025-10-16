@@ -55,7 +55,7 @@ MonoBehaviour:
   greenZone: {fileID: 4919892679170869836}
   fillBar: {fileID: 2435154259390851981}
   speedUp: 100
-  speedDown: 10
+  speedDown: 50
   fillSpeed: 0.1
   greenZoneHeight: 70
   leftBarHeight: 200

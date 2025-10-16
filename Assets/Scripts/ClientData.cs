@@ -79,7 +79,14 @@ public class ClientData : MonoBehaviour
         SpecificEmployee = null;
 
         // Услуга из глобального списка
-        RequestedService = EmployeeManager.Instance.GetRandomService();
+        if (clientDataSO.possibleServices?.Count > 0)
+        {
+            RequestedService = clientDataSO.possibleServices[Random.Range(0, clientDataSO.possibleServices.Count)];
+        }
+        else
+        {
+            RequestedService = ""; // Default empty or handle as needed
+        }
 
         // Выбор случайного RaceVarietySO
         if (clientDataSO.varietyPreferences.Count > 0)

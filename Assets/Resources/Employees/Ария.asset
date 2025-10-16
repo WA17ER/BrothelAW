@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   employeeName: "\u0410\u0440\u0438\u044F"
   breastSize: 1
-  bodyType: 2
+  bodyType: 0
   race: 0
   StaminaMax: 50
   PossibleSicknesses:
@@ -41,5 +41,6 @@ MonoBehaviour:
   - "\u0421\u0442\u043E\u044F"
   sickResistance: 20
   hireCost: 100
+  progressionSpeed: 10
   listIcon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   portraitIcon: {fileID: 21300000, guid: 205c2e01d0fb0f2409f8cdca5bec078b, type: 3}

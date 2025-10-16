@@ -17,18 +17,23 @@ public class EmployeeHealingManager : MonoBehaviour
     private List<Employee> selectedEmployees = new List<Employee>();
 
     private void Start()
-    {
+    {        
         if (employeeHealPanel == null || cancelButton == null || confirmButton == null || employeeGrid == null || employeeHealPanelPrefab == null || priceText == null || goldIndicator == null)
         {
             Debug.LogError("Одна или несколько ссылок в EmployeeHealingManager не привязаны.");
             return;
-        }
-        employeeHealPanel.SetActive(false);
-        if (cancelButton != null) cancelButton.onClick.AddListener(ClosePanel);
-        if (confirmButton != null) confirmButton.onClick.AddListener(ConfirmHealing);
+        }        
+        cancelButton?.onClick.AddListener(ClosePanel);
+        confirmButton?.onClick.AddListener(ConfirmHealing);
         UpdateIndicators();
         PopulateEmployeeGrid();
-        UpdatePriceText();
+        UpdatePriceText();        
+    }
+
+    void OnEnable()
+    {
+        UpdateIndicators();
+        selectedEmployees.Clear();
     }
 
     private void UpdateIndicators()

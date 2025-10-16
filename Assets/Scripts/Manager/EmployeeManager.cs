@@ -157,17 +157,7 @@ public class EmployeeManager : MonoBehaviour
     {
         employee.SetState(state);
         MoveEmployeeToList(employee);
-    }
-    public string GetRandomService()
-    {
-        if (servicePriceDict == null || servicePriceDict.Count == 0)
-        {
-            Debug.LogWarning("Список servicePrices пуст или не инициализирован.");
-            return null;
-        }
-        int index = Random.Range(0, servicePriceDict.Count);
-        return servicePriceDict.Keys.ElementAt(index);
-    }
+    }    
     public float AssignEmployee(ClientData client, Employee employee)
     {
         Debug.Log($"AssignEmployee: client = {client?.clientName ?? "null"}, employee = {employee?.Data.employeeName ?? "null"}");

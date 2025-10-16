@@ -15,56 +15,62 @@ MonoBehaviour:
   employeePreferences:
     chestSize:
     - size: 0
-      value: 1
+      bonusValue: 0
     - size: 1
-      value: 2
+      bonusValue: 0
     - size: 2
-      value: 3
+      bonusValue: 0
     - size: 3
-      value: 4
+      bonusValue: 0
     - size: 4
-      value: 4
+      bonusValue: 0
     - size: 5
-      value: 4
+      bonusValue: 0
     - size: 3
-      value: 4
+      bonusValue: 0
     bodyType:
     - type: 1
-      value: 2
+      bonusValue: 0
     - type: 0
-      value: 1
+      bonusValue: 0
     - type: 2
-      value: 5
+      bonusValue: 0
     - type: 3
-      value: 3
+      bonusValue: 0
     - type: 4
-      value: 4
+      bonusValue: 0
     - type: 5
-      value: 10
+      bonusValue: 0
     - type: 6
-      value: 4
+      bonusValue: 0
     racePreference:
     - race: 0
-      value: 1
+      bonusValue: 0
     - race: 1
-      value: 3
+      bonusValue: 0
     - race: 2
-      value: 4
+      bonusValue: 0
     - race: 3
-      value: 3
+      bonusValue: 0
     - race: 4
-      value: 6
+      bonusValue: 0
     - race: 5
-      value: 4
+      bonusValue: 0
     - race: 6
-      value: 7
+      bonusValue: 0
     - race: 7
-      value: 3
+      bonusValue: 0
   districtName: Outdour
   popularityToUnlock: 500
-  clientTypes: []
+  clientTypes:
+  - clientType: {fileID: 11400000, guid: 48c9b8b39f7f61445977024158f7f386, type: 2}
+    multiplier: 150
+  - clientType: {fileID: 11400000, guid: c23490c283ff4534b93e012433a7f215, type: 2}
+    multiplier: 500
+  - clientType: {fileID: 11400000, guid: 233d9455a6abb184995e35cde17dbe43, type: 2}
+    multiplier: 100
   availableRaces: 
-  districtPopularity: 520
+  districtPopularity: 0
   raceUnlocks:
   - raceVariety: {fileID: 11400000, guid: fbff1f7d4115e0a4e8188e5b883b7dd3, type: 2}
     popularityThreshold: 50

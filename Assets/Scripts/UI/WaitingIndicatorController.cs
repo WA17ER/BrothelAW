@@ -1,7 +1,8 @@
+using System.Collections.Generic;
+using System.Linq;
+using TMPro; // Подключение TextMeshPro
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // Подключение TextMeshPro
-using System.Collections.Generic;
 
 public class WaitingIndicatorController : MonoBehaviour
 {
@@ -168,38 +169,30 @@ public class WaitingIndicatorController : MonoBehaviour
 
     void UpdateIndicators()
     {
-        foreach (var pair in activeIndicators)
+        var validIndicators = activeIndicators.Where(pair => pair.Value != null).ToList();
+        foreach (var pair in validIndicators)
         {
             string clientName = pair.Key;
             GameObject indicator = pair.Value;
-            Image image = indicator.GetComponent<Image>();
-            TMP_Text waitingText = indicator.transform.Find("WaitingText")?.GetComponent<TMP_Text>();
+            var image = indicator.GetComponent<Image>();
+            var waitingText = indicator.transform.Find("WaitingText")?.GetComponent<TMP_Text>();
             if (image != null && waitingText != null)
             {
-                ClientData client = FindClientByName(clientName);
+                var client = FindClientByName(clientName);
                 if (client != null)
                 {
                     float maxTime = client.State == ClientData.ClientState.Waiting ? clientManager.WaitingTime : clientManager.OnChairTime;
                     float fillAmount = client.waitTime / maxTime;
                     image.fillAmount = Mathf.Clamp01(fillAmount);
-                    waitingText.text = client.clientName; // Обновление текста на каждом кадре
-                    Debug.Log($"Обновлён индикатор для {client.clientName}, состояние: {client.State}, fillAmount: {fillAmount:F2}, waitTime: {client.waitTime:F2}, текст: {waitingText.text}");
+                    waitingText.text = client.clientName;
                 }
             }
         }
     }
-
     ClientData FindClientByName(string clientName)
     {
-        foreach (ClientData client in clientManager.WaitingClients)
-        {
-            if (client.clientName == clientName) return client;
-        }
-        foreach (ClientData client in clientManager.OnChairClients)
-        {
-            if (client.clientName == clientName) return client;
-        }
-        return null;
+        return clientManager.WaitingClients.FirstOrDefault(c => c.clientName == clientName) ??
+               clientManager.OnChairClients.FirstOrDefault(c => c.clientName == clientName);
     }
 
     void Update()

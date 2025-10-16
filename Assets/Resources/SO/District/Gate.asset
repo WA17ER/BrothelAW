@@ -15,51 +15,51 @@ MonoBehaviour:
   employeePreferences:
     chestSize:
     - size: 0
-      value: 1
+      bonusValue: 0
     - size: 1
-      value: 2
+      bonusValue: 0
     - size: 2
-      value: 3
+      bonusValue: 0
     - size: 3
-      value: 4
+      bonusValue: 0
     - size: 4
-      value: 4
+      bonusValue: 0
     - size: 5
-      value: 4
+      bonusValue: 0
     bodyType:
     - type: 1
-      value: 2
+      bonusValue: 0
     - type: 0
-      value: 1
+      bonusValue: 0
     - type: 2
-      value: 5
+      bonusValue: 0
     - type: 3
-      value: 3
+      bonusValue: 0
     - type: 4
-      value: 4
+      bonusValue: 0
     - type: 5
-      value: 10
+      bonusValue: 0
     - type: 6
-      value: 4
+      bonusValue: 0
     racePreference:
     - race: 0
-      value: 1
+      bonusValue: 0
     - race: 0
-      value: 3
+      bonusValue: 0
     - race: 2
-      value: 4
+      bonusValue: 0
     - race: 3
-      value: 3
+      bonusValue: 0
     - race: 4
-      value: 6
+      bonusValue: 0
     - race: 5
-      value: 4
+      bonusValue: 0
     - race: 6
-      value: 7
+      bonusValue: 0
     - race: 7
-      value: 3
+      bonusValue: 0
   districtName: Gate
-  popularityToUnlock: 500
+  popularityToUnlock: 1000
   clientTypes:
   - clientType: {fileID: 11400000, guid: 47e87103deb52614ab6b91b59ac498c6, type: 2}
     multiplier: 10
@@ -68,7 +68,7 @@ MonoBehaviour:
   - clientType: {fileID: 11400000, guid: 233d9455a6abb184995e35cde17dbe43, type: 2}
     multiplier: 100
   availableRaces: 000000000400000007000000
-  districtPopularity: 500
+  districtPopularity: 0
   raceUnlocks:
   - raceVariety: {fileID: 11400000, guid: ede63e72ba4f3fa4abed1622cb7a88bf, type: 2}
     popularityThreshold: 0

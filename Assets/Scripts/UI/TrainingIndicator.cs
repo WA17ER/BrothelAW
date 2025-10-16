@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-
 public class TrainingIndicator : MonoBehaviour
 {
     [SerializeField] private Image redIndicator; // RedIndicator
@@ -25,11 +24,13 @@ public class TrainingIndicator : MonoBehaviour
         currentFill = 0.5f;
         // Set GreenZone height
         greenRect.sizeDelta = new Vector2(greenRect.sizeDelta.x, greenZoneHeight);
-        // Random GreenZone center Y: greenZoneHeight/2 to leftBarHeight - greenZoneHeight/2
+        // Random GreenZone center Y: -100 + halfHeight to 100 - halfHeight
         float halfHeight = greenZoneHeight / 2f;
-        float randomCenterY = Random.Range(halfHeight, leftBarHeight - halfHeight);
+        float minCenterY = -leftBarHeight / 2f + halfHeight;
+        float maxCenterY = leftBarHeight / 2f - halfHeight;
+        float randomCenterY = Random.Range(minCenterY, maxCenterY);
         greenRect.anchoredPosition = new Vector2(0, randomCenterY);
-        float randomY = Random.Range(-125f, 125f);
+        float randomY = Random.Range(-100f, 100f);
         redRect.anchoredPosition = new Vector2(0, randomY);
         Debug.Log($"Random Y: {randomY}, GreenZone center: {randomCenterY}");
         isActive = true;

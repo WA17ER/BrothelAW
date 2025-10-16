@@ -21,8 +21,7 @@ public class CityPanel : MonoBehaviour
 
     void Start()
     {
-        UpdateDistrictPanelsVisibility();
-        gameObject.SetActive(false);
+        UpdateDistrictPanelsVisibility();       
     }
 
     void OnEnable()
@@ -70,6 +69,10 @@ public class CityPanel : MonoBehaviour
         }
         LogDistrictAndEmployeeLists(validPanels);
         DistrictManager.Instance.ConfirmAssignments();
+        foreach (var districtPanel in validPanels)
+        {
+            districtPanel.GetComponent<DistrictData>().FinalizeAssignment();
+        }
         DistrictManager.Instance.TransferPopularityToGameState();
         gameObject.SetActive(false);
     }

@@ -1,0 +1,216 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|c:\\users\\darth\\desktop\\project\\brothel in another world\\assets\\scripts\\manager\\employeemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\manager\\employeemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\manager\\scenetransitionmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\manager\\scenetransitionmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\manager\\savemanger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\manager\\savemanger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\gameresources.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\gameresources.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\hireemployeeui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\hireemployeeui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\ui\\managmentsceneui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\managmentsceneui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\manager\\gamestatemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\manager\\gamestatemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\districtdata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\districtdata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\ui\\employeemarketingpanel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\employeemarketingpanel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\ui\\citypanel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\citypanel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\ui\\districtpanel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\ui\\districtpanel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\assets\\scripts\\districtclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C518A734-3854-A94B-A11C-CA34964D44D1}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\districtclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 10,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "GameStateManager.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\Manager\\GameStateManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Manager\\GameStateManager.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\Manager\\GameStateManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Manager\\GameStateManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-04T14:52:08.49Z",
+              "IsPinned": true
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "SaveManger.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\Manager\\SaveManger.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Manager\\SaveManger.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\Manager\\SaveManger.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Manager\\SaveManger.cs",
+              "ViewState": "AgIAAC4BAAAAAAAAAAAawD8BAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T08:41:35.664Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ManagmentSceneUI.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\UI\\ManagmentSceneUI.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\ManagmentSceneUI.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\UI\\ManagmentSceneUI.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\ManagmentSceneUI.cs",
+              "ViewState": "AgIAAEcAAAAAAAAAAAAowF4AAABqAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T08:23:08.634Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "DistrictData.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\DistrictData.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\DistrictData.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\DistrictData.cs",
+              "RelativeToolTip": "Assets\\Scripts\\DistrictData.cs",
+              "ViewState": "AgIAAEoAAAAAAAAAAAAAAGQAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-19T10:50:22.1Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "GameResources.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\GameResources.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\GameResources.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\GameResources.cs",
+              "RelativeToolTip": "Assets\\Scripts\\GameResources.cs",
+              "ViewState": "AgIAAEMAAAAAAAAAAAAawFgAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-19T10:39:49.117Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "HireEmployeeUI.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\HireEmployeeUI.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\HireEmployeeUI.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\HireEmployeeUI.cs",
+              "RelativeToolTip": "Assets\\Scripts\\HireEmployeeUI.cs",
+              "ViewState": "AgIAADkAAAAAAAAAAAAowE8AAABWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-19T10:29:04.055Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "CityPanel.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\UI\\CityPanel.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\CityPanel.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\UI\\CityPanel.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\CityPanel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-19T10:24:56.382Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "DistrictClient.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\DistrictClient.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\DistrictClient.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\DistrictClient.cs",
+              "RelativeToolTip": "Assets\\Scripts\\DistrictClient.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-15T18:30:11.541Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "SceneTransitionManager.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\Manager\\SceneTransitionManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Manager\\SceneTransitionManager.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\Manager\\SceneTransitionManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Manager\\SceneTransitionManager.cs",
+              "ViewState": "AgIAAEkAAAAAAAAAAAD4v2AAAABAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-15T19:37:14.471Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "DistrictPanel.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\UI\\DistrictPanel.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\DistrictPanel.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\UI\\DistrictPanel.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\DistrictPanel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAqAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-12T12:07:20.195Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "EmployeeManager.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\Manager\\EmployeeManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Manager\\EmployeeManager.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\Manager\\EmployeeManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Manager\\EmployeeManager.cs",
+              "ViewState": "AgIAACMAAAAAAAAAAAAlwDUAAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-14T17:06:50.814Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "EmployeeMarketingPanel.cs",
+              "DocumentMoniker": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\UI\\EmployeeMarketingPanel.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\EmployeeMarketingPanel.cs",
+              "ToolTip": "C:\\Users\\darth\\Desktop\\Project\\Brothel in Another world\\Assets\\Scripts\\UI\\EmployeeMarketingPanel.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\EmployeeMarketingPanel.cs",
+              "ViewState": "AgIAAH8AAAAAAAAAAAAtwJoAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-19T10:50:47.086Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
